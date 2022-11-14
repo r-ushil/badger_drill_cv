@@ -6,35 +6,35 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 # setup pose estimation with min confidence for person detection / tracking
-pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, 
+pose_estimator = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, 
                     min_tracking_confidence=0.5, model_complexity=2)
 
-video = sys.argv[1]
+input_video_path = sys.argv[1]
 
-cap = cv2.VideoCapture(video)
+video_capture = cv2.VideoCapture(input_video_path)
 
-if cap.isOpened() == False:
+if video_capture.isOpened() == False:
     print("Error opening video file")
     raise TypeError
 
-frame_width = int(cap.get(3))
-frame_height = int(cap.get(4))
-fps = int(cap.get(5))
+frame_width = int(video_capture.get(3))
+frame_height = int(video_capture.get(4))
+fps = int(video_capture.get(5))
 
 # setup output video 
-outdir, filename = video[:video.rfind('/')+1], video[video.rfind('/')+1:]
+output_video_directory, filename = input_video_path[:input_video_path.rfind('/')+1], input_video_path[input_video_path.rfind('/')+1:]
 
-name, ext = filename.split('.')
+input_video_filename, input_video_extension = filename.split('.')
 
-out_filename = f'{outdir}{name}_annotated.{ext}'
+output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
 
-out = cv2.VideoWriter(out_filename, cv2.VideoWriter_fourcc(
+video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
     'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
 
 # process per frame
-while cap.isOpened():
-    imagePresent, image = cap.read()
-    if not imagePresent:
+while video_capture.isOpened():
+    image_present, image = video_capture.read()
+    if not image_present:
         break
 
     # convert colour format from BGR to RBG
@@ -42,7 +42,8 @@ while cap.isOpened():
     image.flags.writeable = False
     
     # run pose estimation on frame
-    results = pose.process(image)
+    # TODO: make name more specific
+    results = pose_estimator.process(image)
 
     # convert colour format back to BGR
     image.flags.writeable = True
@@ -53,11 +54,11 @@ while cap.isOpened():
         image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
     
     image = cv2.flip(image, 0)
-    out.write(image)
+    video_writer.write(image)
     
 
-pose.close()
-cap.release()
-out.release()
+pose_estimator.close()
+video_capture.release()
+video_writer.release()
 
 
