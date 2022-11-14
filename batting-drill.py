@@ -32,9 +32,7 @@ def main(input_video_path):
       
       process_frame(image, pose_estimator, video_writer)
   
-  pose_estimator.close()
-  video_capture.release()
-  video_writer.release()
+  cleanup_resources(pose_estimator, video_capture, video_writer)
 
 def process_frame(image, pose_estimator, video_writer):
   # convert colour format from BGR to RBG
@@ -73,6 +71,11 @@ def get_video_metadata(video_capture):
   fps = int(video_capture.get(5))
 
   return (frame_width, frame_height, fps)
+
+def cleanup_resources(pose_estimator, video_capture, video_writer):
+  pose_estimator.close()
+  video_capture.release()
+  video_writer.release()
 
 
 if __name__ == "__main__":
