@@ -70,6 +70,20 @@ class CoverDriveJudge():
 
 		image = cv2.flip(image, 0)
 		self.video_writer.write(image)
+
+	def generate_landmark_vectors(self, results):
+		# iterate through detected landmarks, and add to list
+		landmarks = []
+
+		if results.pose_landmarks:
+			for landmark in results.pose_landmarks.landmark:
+				landmarks.append((
+					int(landmark.x * self.frame_width),
+					int(landmark.y * self.frame_height),
+					int(landmark.z * self.frame_width)
+				))
+
+		return landmarks
   
 	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 	@staticmethod
@@ -111,21 +125,6 @@ class CoverDriveJudge():
 		output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
   
 		return output_video_path
-
-	def generate_landmark_vectors(self, results):
-		# iterate through detected landmarks, and add to list
-		landmarks = []
-
-		if results.pose_landmarks:
-			for landmark in results.pose_landmarks.landmark:
-				landmarks.append((
-					int(landmark.x * self.frame_width),
-					int(landmark.y * self.frame_height),
-					int(landmark.z * self.frame_width)
-				))
-
-		return landmarks
-
 
 	def __enter__(self):
 		return self
