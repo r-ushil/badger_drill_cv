@@ -3,62 +3,64 @@ import mediapipe as mp
 import numpy as np
 import sys
 
-mp_drawing = mp.solutions.drawing_utils
-mp_pose = mp.solutions.pose
+def main():
 
-# setup pose estimation with min confidence for person detection / tracking
-pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, 
-                    min_tracking_confidence=0.5, model_complexity=2)
+    mp_drawing = mp.solutions.drawing_utils
+    mp_pose = mp.solutions.pose
 
-video = sys.argv[1]
+    # setup pose estimation with min confidence for person detection / tracking
+    pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, 
+                        min_tracking_confidence=0.5, model_complexity=2)
 
-cap = cv2.VideoCapture(video)
+    video = sys.argv[1]
 
-if cap.isOpened() == False:
-    print("Error opening video file")
-    raise TypeError
+    cap = cv2.VideoCapture(video)
 
-frame_width = int(cap.get(3))
-frame_height = int(cap.get(4))
+    if cap.isOpened() == False:
+        print("Error opening video file")
+        raise TypeError
 
-# setup output video 
-outdir, filename = video[:video.rfind('/')+1], video[video.rfind('/')+1:]
+    frame_width = int(cap.get(3))
+    frame_height = int(cap.get(4))
 
-name, ext = filename.split('.')
+    # setup output video 
+    outdir, filename = video[:video.rfind('/')+1], video[video.rfind('/')+1:]
 
-out_filename = f'{outdir}{name}_annotated.{ext}'
+    name, ext = filename.split('.')
 
-out = cv2.VideoWriter(out_filename, cv2.VideoWriter_fourcc(
-    'm', 'p', '4', 'v'), 30, (frame_width, frame_height))
+    out_filename = f'{outdir}{name}_annotated.{ext}'
 
-# process per frame
-while cap.isOpened():
-    ret, image = cap.read()
-    if not ret:
-        break
+    out = cv2.VideoWriter(out_filename, cv2.VideoWriter_fourcc(
+        'm', 'p', '4', 'v'), 30, (frame_width, frame_height))
 
-    # convert colour format from BGR to RBG
-    image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
-    image.flags.writeable = False
-    
-    # run pose estimation on frame
-    results = pose.process(image)
+    # process per frame
+    while cap.isOpened():
+        ret, image = cap.read()
+        if not ret:
+            break
 
-    # convert colour format back to BGR
-    image.flags.writeable = True
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    
-    # write pose landmarks from results onto frame
-    mp_drawing.draw_landmarks(
-        image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-    
-    image = cv2.flip(image, 0)
-    out.write(image)
-    
+        # convert colour format from BGR to RBG
+        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
+        
+        # run pose estimation on frame
+        results = pose.process(image)
 
-pose.close()
-cap.release()
-out.release()
+        # convert colour format back to BGR
+        image.flags.writeable = True
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        # write pose landmarks from results onto frame
+        mp_drawing.draw_landmarks(
+            image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+        image = cv2.flip(image, 0)
+        out.write(image)
+        
+
+    pose.close()
+    cap.release()
+    out.release()
 
 
 # Calculates angles between 3 joints, given their 3d coordinates.
@@ -84,3 +86,7 @@ def check_vertical_alignment(shoulder, knee, foot, tolerance):
         return False
     else:
         return True
+
+
+if __name__ == '__main__':
+    main()
