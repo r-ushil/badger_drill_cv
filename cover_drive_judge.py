@@ -8,11 +8,11 @@ mp_pose = mp.solutions.pose
 class CoverDriveJudge():
   def __init__(self, input_video_path):
     self.pose_estimator = mp_pose.Pose(
-      static_image_mode=False, 
-      min_detection_confidence=0.5, 
-      min_tracking_confidence=0.5, 
-      model_complexity=2
-      )
+        static_image_mode=False, 
+        min_detection_confidence=0.5, 
+        min_tracking_confidence=0.5, 
+        model_complexity=2
+    )
 
     self.video_capture = cv2.VideoCapture(input_video_path)
 
@@ -57,14 +57,13 @@ class CoverDriveJudge():
     if results.pose_landmarks:
         for landmark in results.pose_landmarks.landmark:
             landmarks.append((
-              int(landmark.x * self.frame_width), \
-              int(landmark.y * self.frame_height), \
-              int(landmark.z * self.frame_width)
-              ))
+                int(landmark.x * self.frame_width),
+                int(landmark.y * self.frame_height),
+                int(landmark.z * self.frame_width)
+            ))
 
     # write pose landmarks from results onto frame
-    mp_drawing.draw_landmarks(
-        image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
     # TODO: - add logic to check that these landmarks are actually detected.
     # check for vertical alignment
@@ -80,55 +79,55 @@ class CoverDriveJudge():
     image = cv2.flip(image, 0)
     self.video_writer.write(image)
   
-  def __enter__(self):
-    return self
+    def __enter__(self):
+        return self
 
-  def __exit__(self, type, value, traceback):
-    self.pose_estimator.close()
-    self.video_capture.release()
-    self.video_writer.release()
+    def __exit__(self, type, value, traceback):
+        self.pose_estimator.close()
+        self.video_capture.release()
+        self.video_writer.release()
   
-  # Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
-  @staticmethod
-  def check_vertical_alignment(shoulder, knee, foot, tolerance):
-      vertical_alignment = CoverDriveJudge.calculate_angle(shoulder, knee, foot)
-      return not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance))
+    # Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
+    @staticmethod
+    def check_vertical_alignment(shoulder, knee, foot, tolerance):
+        vertical_alignment = CoverDriveJudge.calculate_angle(shoulder, knee, foot)
+        return not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance))
 
-  # Calculates angles between 3 joints, given their 3d coordinates.
-  @staticmethod
-  def calculate_angle(a, b, c):
-      a = np.array(a) # First
-      b = np.array(b) # Mid
-      c = np.array(c) # End
+    # Calculates angles between 3 joints, given their 3d coordinates.
+    @staticmethod
+    def calculate_angle(a, b, c):
+        a = np.array(a) # First
+        b = np.array(b) # Mid
+        c = np.array(c) # End
 
-      # Calculate the angles between the vectors, in radians
-      radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-      # Convert to degrees
-      angle = np.abs(radians*180.0/np.pi)
+        # Calculate the angles between the vectors, in radians
+        radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
+        # Convert to degrees
+        angle = np.abs(radians*180.0/np.pi)
 
-      if angle > 180.0:
-          angle = 360-angle
+        if angle > 180.0:
+            angle = 360-angle
 
-      return angle
-    
-  @staticmethod
-  def get_video_metadata(video_capture):
-    frame_width = int(video_capture.get(3))
-    frame_height = int(video_capture.get(4))
-    fps = int(video_capture.get(5))
+        return angle
 
-    return (frame_width, frame_height, fps)
+    @staticmethod
+    def get_video_metadata(video_capture):
+        frame_width = int(video_capture.get(3))
+        frame_height = int(video_capture.get(4))
+        fps = int(video_capture.get(5))
 
-  @staticmethod
-  def generate_output_video_path(input_video_path):
-    output_video_directory, filename = \
-      input_video_path[:input_video_path.rfind('/')+1], input_video_path[input_video_path.rfind('/')+1:]
+        return (frame_width, frame_height, fps)
+
+    @staticmethod
+    def generate_output_video_path(input_video_path):
+        output_video_directory, filename = \
+            input_video_path[:input_video_path.rfind('/')+1], input_video_path[input_video_path.rfind('/')+1:]
   
-    input_video_filename, input_video_extension = filename.split('.')
+        input_video_filename, input_video_extension = filename.split('.')
   
-    output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
+        output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
   
-    return output_video_path
+        return output_video_path
 
 
 
