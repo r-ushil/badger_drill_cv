@@ -25,11 +25,9 @@ def main(input_video_path):
       'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
 
   # process per frame
-  while video_capture.isOpened():
+  while image_present:
       image_present, image = video_capture.read()
-      if not image_present:
-          break
-      
+
       process_frame(image, pose_estimator, video_writer)
   
   cleanup_resources(pose_estimator, video_capture, video_writer)
