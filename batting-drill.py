@@ -13,7 +13,7 @@ input_video_path = sys.argv[1]
 
 video_capture = cv2.VideoCapture(input_video_path)
 
-if video_capture.isOpened() == False:
+if not video_capture.isOpened():
     print("Error opening video file")
     raise TypeError
 
