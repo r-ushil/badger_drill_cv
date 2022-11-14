@@ -79,14 +79,6 @@ class CoverDriveJudge():
 		image = cv2.flip(image, 0)
 		self.video_writer.write(image)
   
-	def __enter__(self):
-		return self
-
-	def __exit__(self, type, value, traceback):
-		self.pose_estimator.close()
-		self.video_capture.release()
-		self.video_writer.release()
-  
 	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 	@staticmethod
 	def check_vertical_alignment(shoulder, knee, foot, tolerance):
@@ -129,5 +121,10 @@ class CoverDriveJudge():
   
 		return output_video_path
 
+	def __enter__(self):
+		return self
 
-
+	def __exit__(self, type, value, traceback):
+		self.pose_estimator.close()
+		self.video_capture.release()
+		self.video_writer.release()
