@@ -59,7 +59,7 @@ class CoverDriveJudge():
 
 		# TODO: - add logic to check that these landmarks are actually detected.
 		# check for vertical alignment
-		aligned = self.check_vertical_alignment(
+		aligned = CoverDriveJudge.check_vertical_alignment(
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_KNEE],
 			landmarks[mp_pose.PoseLandmark.LEFT_FOOT_INDEX],
