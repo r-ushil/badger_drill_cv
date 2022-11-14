@@ -1,4 +1,4 @@
-# badger_drill_cv
+# Badger - Computer Vision Microservice
 
 ### Usage
 
