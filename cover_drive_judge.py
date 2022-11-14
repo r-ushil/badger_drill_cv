@@ -20,17 +20,15 @@ class CoverDriveJudge():
 			print("Error opening video file")
 			raise TypeError
 
-		frame_width, frame_height, fps = CoverDriveJudge.get_video_metadata(self.video_capture)
-
-		self.frame_width = frame_width
-		self.frame_height = frame_height
-		self.fps = fps
+		self.frame_width = int(self.video_capture.get(3))
+		self.frame_height = int(self.video_capture.get(4))
+		fps = int(self.video_capture.get(5))
 
 		# setup output video 
 		output_video_path = self.generate_output_video_path(input_video_path)
 
 		self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
-		'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
+		'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
   
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
@@ -106,14 +104,6 @@ class CoverDriveJudge():
 			angle = 360-angle
 
 		return angle
-
-	@staticmethod
-	def get_video_metadata(video_capture):
-		frame_width = int(video_capture.get(3))
-		frame_height = int(video_capture.get(4))
-		fps = int(video_capture.get(5))
-
-		return (frame_width, frame_height, fps)
 
 	@staticmethod
 	def generate_output_video_path(input_video_path):
