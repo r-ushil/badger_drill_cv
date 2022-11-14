@@ -53,8 +53,11 @@ class CoverDriveJudge():
 
     image = cv2.flip(image, 0)
     self.video_writer.write(image)
+  
+  def __enter__(self):
+    return self
 
-  def cleanup_resources(self):
+  def __exit__(self, type, value, traceback):
     self.pose_estimator.close()
     self.video_capture.release()
     self.video_writer.release()

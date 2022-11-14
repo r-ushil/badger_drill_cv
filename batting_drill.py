@@ -2,9 +2,8 @@ from cover_drive_judge import CoverDriveJudge
 import sys
 
 def main(input_filename):
-  judge = CoverDriveJudge(input_filename)
-  judge.process_and_write_video()
-  judge.cleanup_resources()
+  with CoverDriveJudge(input_filename) as judge:
+    judge.process_and_write_video()
 
 
 if __name__ == "__main__":
