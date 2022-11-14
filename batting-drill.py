@@ -20,6 +20,7 @@ def main(input_video_path):
 
   # setup output video 
   output_video_path = generate_output_video_path(input_video_path)
+
   video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
       'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
 
@@ -28,30 +29,33 @@ def main(input_video_path):
       image_present, image = video_capture.read()
       if not image_present:
           break
-
-      # convert colour format from BGR to RBG
-      image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
-      image.flags.writeable = False
-
-      # run pose estimation on frame
-      # TODO: make name more specific
-      results = pose_estimator.process(image)
-
-      # convert colour format back to BGR
-      image.flags.writeable = True
-      image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-      # write pose landmarks from results onto frame
-      mp_drawing.draw_landmarks(
-          image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
-      image = cv2.flip(image, 0)
-      video_writer.write(image)
-
-
+      
+      process_frame(image, pose_estimator, video_writer)
+  
   pose_estimator.close()
   video_capture.release()
   video_writer.release()
+
+def process_frame(image, pose_estimator, video_writer):
+  # convert colour format from BGR to RBG
+  image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+  image.flags.writeable = False
+
+  # run pose estimation on frame
+  # TODO: make name more specific
+  results = pose_estimator.process(image)
+
+  # convert colour format back to BGR
+  image.flags.writeable = True
+  image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+  # write pose landmarks from results onto frame
+  mp_drawing.draw_landmarks(
+      image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+  image = cv2.flip(image, 0)
+  video_writer.write(image)
+
 
 def generate_output_video_path(input_video_path):
   output_video_directory, filename = \
