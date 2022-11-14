@@ -23,12 +23,7 @@ def main():
   fps = int(video_capture.get(5))
 
   # setup output video 
-  output_video_directory, filename = input_video_path[:input_video_path.rfind('/')+1], input_video_path[input_video_path.rfind('/')+1:]
-
-  input_video_filename, input_video_extension = filename.split('.')
-
-  output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
-
+  output_video_path = generate_output_video_path(input_video_path)
   video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
       'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
 
@@ -61,6 +56,16 @@ def main():
   pose_estimator.close()
   video_capture.release()
   video_writer.release()
+
+def generate_output_video_path(input_video_path):
+  output_video_directory, filename = \
+    input_video_path[:input_video_path.rfind('/')+1], input_video_path[input_video_path.rfind('/')+1:]
+
+  input_video_filename, input_video_extension = filename.split('.')
+
+  output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
+
+  return output_video_path
 
 if __name__ == "__main__":
   main()
