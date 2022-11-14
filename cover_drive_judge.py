@@ -33,11 +33,11 @@ class CoverDriveJudge():
         'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
   
   def process_and_write_video(self):
-    image_present, image = self.video_capture.read()
-    while image_present:
-        self.process_frame(image)
+    frame_present, frame = self.video_capture.read()
+    while frame_present:
+        self.process_frame(frame)
 
-        image_present, image = self.video_capture.read()
+        frame_present, frame = self.video_capture.read()
   
   def process_frame(self, image):
     # convert colour format from BGR to RBG
