@@ -19,6 +19,7 @@ if cap.isOpened() == False:
 
 frame_width = int(cap.get(3))
 frame_height = int(cap.get(4))
+fps = int(cap.get(5))
 
 # setup output video 
 outdir, filename = video[:video.rfind('/')+1], video[video.rfind('/')+1:]
@@ -28,7 +29,7 @@ name, ext = filename.split('.')
 out_filename = f'{outdir}{name}_annotated.{ext}'
 
 out = cv2.VideoWriter(out_filename, cv2.VideoWriter_fourcc(
-    'm', 'p', '4', 'v'), 30, (frame_width, frame_height))
+    'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
 
 # process per frame
 while cap.isOpened():
