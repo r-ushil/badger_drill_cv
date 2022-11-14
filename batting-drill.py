@@ -5,12 +5,10 @@ import sys
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-def main():
+def main(input_video_path):
   # setup pose estimation with min confidence for person detection / tracking
   pose_estimator = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, 
                       min_tracking_confidence=0.5, model_complexity=2)
-
-  input_video_path = sys.argv[1]
 
   video_capture = cv2.VideoCapture(input_video_path)
 
@@ -68,5 +66,5 @@ def generate_output_video_path(input_video_path):
   return output_video_path
 
 if __name__ == "__main__":
-  main()
+  main(sys.argv[1])
 
