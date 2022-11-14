@@ -82,10 +82,7 @@ def calculate_angle(a, b, c):
 # Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 def check_vertical_alignment(shoulder, knee, foot, tolerance):
     vertical_alignment = calculate_angle(shoulder, knee, foot)
-    if vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance):
-        return False
-    else:
-        return True
+    return not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance))
 
 
 if __name__ == '__main__':
