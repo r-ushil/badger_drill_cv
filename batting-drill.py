@@ -33,8 +33,8 @@ out = cv2.VideoWriter(out_filename, cv2.VideoWriter_fourcc(
 
 # process per frame
 while cap.isOpened():
-    ret, image = cap.read()
-    if not ret:
+    imagePresent, image = cap.read()
+    if not imagePresent:
         break
 
     # convert colour format from BGR to RBG
