@@ -1,4 +1,5 @@
 import mediapipe as mp
+import numpy as np
 import cv2
 
 mp_drawing = mp.solutions.drawing_utils
@@ -20,6 +21,10 @@ class CoverDriveJudge():
         raise TypeError
 
     frame_width, frame_height, fps = self.get_video_metadata(self.video_capture)
+
+    self.frame_width = frame_width
+    self.frame_height = frame_height
+    self.fps = fps
 
     # setup output video 
     output_video_path = self.generate_output_video_path(input_video_path)
@@ -47,9 +52,30 @@ class CoverDriveJudge():
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+    # iterate through detected landmarks, and add to list
+    landmarks = []
+    if results.pose_landmarks:
+        for landmark in results.pose_landmarks.landmark:
+            landmarks.append((
+              int(landmark.x * self.frame_width), \
+              int(landmark.y * self.frame_height), \
+              int(landmark.z * self.frame_width)
+              ))
+
     # write pose landmarks from results onto frame
     mp_drawing.draw_landmarks(
         image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+    # TODO: - add logic to check that these landmarks are actually detected.
+    # check for vertical alignment
+    aligned = self.check_vertical_alignment(
+        landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+        landmarks[mp_pose.PoseLandmark.LEFT_KNEE],
+        landmarks[mp_pose.PoseLandmark.LEFT_FOOT_INDEX],
+        10
+    )
+
+    cv2.putText(image, f'Aligned: {aligned}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
     image = cv2.flip(image, 0)
     self.video_writer.write(image)
@@ -61,6 +87,29 @@ class CoverDriveJudge():
     self.pose_estimator.close()
     self.video_capture.release()
     self.video_writer.release()
+  
+  # Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
+  @staticmethod
+  def check_vertical_alignment(shoulder, knee, foot, tolerance):
+      vertical_alignment = CoverDriveJudge.calculate_angle(shoulder, knee, foot)
+      return not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance))
+
+  # Calculates angles between 3 joints, given their 3d coordinates.
+  @staticmethod
+  def calculate_angle(a, b, c):
+      a = np.array(a) # First
+      b = np.array(b) # Mid
+      c = np.array(c) # End
+
+      # Calculate the angles between the vectors, in radians
+      radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
+      # Convert to degrees
+      angle = np.abs(radians*180.0/np.pi)
+
+      if angle > 180.0:
+          angle = 360-angle
+
+      return angle
     
   @staticmethod
   def get_video_metadata(video_capture):
