@@ -50,9 +50,27 @@ def main():
         image.flags.writeable = True
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+        # iterate through detected landmarks, and add to list
+        landmarks = []
+        if results.pose_landmarks:
+            for landmark in results.pose_landmarks.landmark:
+                landmarks.append((int(landmark.x * frame_width), int(landmark.y * frame_height), int(landmark.z * frame_width)))
+
         # write pose landmarks from results onto frame
         mp_drawing.draw_landmarks(
             image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+
+        # TODO: - add logic to check that these landmarks are actually detected.
+        # check for vertical alignment
+        aligned = check_vertical_alignment(
+            landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+            landmarks[mp_pose.PoseLandmark.LEFT_KNEE],
+            landmarks[mp_pose.PoseLandmark.LEFT_FOOT_INDEX],
+            10
+        )
+        
+        cv2.putText(image, f'Aligned: {aligned}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
         image = cv2.flip(image, 0)
         out.write(image)
