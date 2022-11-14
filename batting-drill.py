@@ -25,11 +25,12 @@ def main(input_video_path):
       'm', 'p', '4', 'v'), fps, (frame_width, frame_height))
 
   # process per frame
-  image_present = True
+  image_present, image = video_capture.read()
   while image_present:
+      process_frame(image, pose_estimator, video_writer)
+
       image_present, image = video_capture.read()
 
-      process_frame(image, pose_estimator, video_writer)
   
   cleanup_resources(pose_estimator, video_capture, video_writer)
 
