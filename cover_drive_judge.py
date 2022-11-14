@@ -52,15 +52,7 @@ class CoverDriveJudge():
 		image.flags.writeable = True
 		image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-		# iterate through detected landmarks, and add to list
-		landmarks = []
-		if results.pose_landmarks:
-			for landmark in results.pose_landmarks.landmark:
-				landmarks.append((
-					int(landmark.x * self.frame_width),
-					int(landmark.y * self.frame_height),
-					int(landmark.z * self.frame_width)
-				))
+		landmarks = self.generate_landmark_vectors(results)
 
 		# write pose landmarks from results onto frame
 		mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
@@ -91,7 +83,6 @@ class CoverDriveJudge():
 		a = np.array(a) # First
 		b = np.array(b) # Mid
 		c = np.array(c) # End
-
 		# Calculate the angles between the vectors, in radians
 		radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
 		# Convert to degrees
@@ -120,6 +111,21 @@ class CoverDriveJudge():
 		output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
   
 		return output_video_path
+
+	def generate_landmark_vectors(self, results):
+		# iterate through detected landmarks, and add to list
+		landmarks = []
+
+		if results.pose_landmarks:
+			for landmark in results.pose_landmarks.landmark:
+				landmarks.append((
+					int(landmark.x * self.frame_width),
+					int(landmark.y * self.frame_height),
+					int(landmark.z * self.frame_width)
+				))
+
+		return landmarks
+
 
 	def __enter__(self):
 		return self
