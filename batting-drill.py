@@ -15,10 +15,8 @@ def main(input_video_path):
   if not video_capture.isOpened():
       print("Error opening video file")
       raise TypeError
-
-  frame_width = int(video_capture.get(3))
-  frame_height = int(video_capture.get(4))
-  fps = int(video_capture.get(5))
+  
+  frame_width, frame_height, fps = get_video_metadata(video_capture)
 
   # setup output video 
   output_video_path = generate_output_video_path(input_video_path)
@@ -64,6 +62,14 @@ def generate_output_video_path(input_video_path):
   output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
 
   return output_video_path
+
+def get_video_metadata(video_capture):
+  frame_width = int(video_capture.get(3))
+  frame_height = int(video_capture.get(4))
+  fps = int(video_capture.get(5))
+
+  return (frame_width, frame_height, fps)
+
 
 if __name__ == "__main__":
   main(sys.argv[1])
