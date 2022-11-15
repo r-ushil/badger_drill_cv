@@ -37,12 +37,29 @@ class CatchingJudge():
 		# TODO: deal with the not ret case
 		_, thresh_frame = cv2.threshold(
 			gray_frame,
-			127, # Threshold value
+			132, # Threshold value
 			255, # Maximum value
 			cv2.THRESH_BINARY
 		)
 
-		out_frame = cv2.cvtColor(thresh_frame, cv2.COLOR_GRAY2BGR)
+		contours, hierarchy = cv2.findContours(
+			image=thresh_frame, 
+			mode=cv2.RETR_TREE, 
+			method=cv2.CHAIN_APPROX_SIMPLE
+		)
+		
+		contour_frame = thresh_frame.copy()
+		cv2.drawContours(
+			image=contour_frame, 
+			contours=contours, 
+			contourIdx=-1, 
+			color=(0, 255, 0), 
+			thickness=2, 
+			lineType=cv2.LINE_AA
+		)
+
+		rot_frame = cv2.cvtColor(contour_frame, cv2.COLOR_GRAY2BGR)
+		out_frame = cv2.flip(rot_frame, 0)
 		self.video_writer.write(out_frame)
 
 	@staticmethod
