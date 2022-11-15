@@ -84,19 +84,18 @@ class CoverDriveJudge():
 
 		return landmarks
 
+	@staticmethod
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
 
-	# Check whether feet are shoulder width apart
-	@staticmethod
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
 
 		if (left_shoulder.visibility < 0.7 or right_shoulder.visibility < 0.7 or 
 			left_foot.visibility < 0.7 or right_foot.visibility < 0.7):
 			return False
 
-		shoulder_width = self.calc_distance_along_x_axis(left_shoulder, right_shoulder)
-		feet_width = self.calc_distance_along_x_axis(left_foot, right_foot)
+		shoulder_width = CoverDriveJudge.calculate_x_displacement(left_shoulder, right_shoulder)
+		feet_width = CoverDriveJudge.calculate_x_displacement(left_foot, right_foot)
 
 		return abs(shoulder_width - feet_width) < SHOULDER_WIDTH_THRESHOLD
   
