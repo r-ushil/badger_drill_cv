@@ -123,15 +123,15 @@ class CoverDriveJudge():
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
-		image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
-		image.flags.writeable = False
+		frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+		frame.flags.writeable = False
 
 		# run pose estimation on frame
 		landmark_results = self.pose_estimator.process(image)
 
 		# convert colour format back to BGR
-		image.flags.writeable = True
-		image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+		frame.flags.writeable = True
+		frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
 		# write pose landmarks from results onto frame
 		mp_drawing.draw_landmarks(image, landmark_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
