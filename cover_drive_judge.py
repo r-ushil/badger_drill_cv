@@ -72,6 +72,7 @@ class CoverDriveJudge():
 		self.video_writer.write(image)
 
 
+	# returns true if any landmarks of interest for a given frame have low visibility
 	@staticmethod
 	def ignore_low_visibility(landmarks):
 		return any(landmark.visibility < 0.7 for landmark in landmarks)
