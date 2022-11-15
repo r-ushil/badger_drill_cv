@@ -52,8 +52,6 @@ class CoverDriveJudge():
 		# convert colour format back to BGR
 		image.flags.writeable = True
 		image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-		
-		landmarks = self.generate_landmark_vectors(results)
 
 		# write pose landmarks from results onto frame
 		mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
@@ -73,19 +71,6 @@ class CoverDriveJudge():
 
 		self.video_writer.write(image)
 
-	def generate_landmark_vectors(self, results):
-		# iterate through detected landmarks, and add to list
-		landmarks = []
-
-		if results.pose_landmarks:
-			for landmark in results.pose_landmarks.landmark:
-				landmarks.append((
-					int(landmark.x * self.frame_width),
-					int(landmark.y * self.frame_height),
-					int(landmark.z * self.frame_width)
-				))
-
-		return landmarks
 
 	@staticmethod
 	def ignore_low_visibility(landmarks):
