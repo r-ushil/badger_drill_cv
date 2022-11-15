@@ -120,12 +120,12 @@ class CoverDriveJudge():
 		)
 
 		# true if hands are close to hips along the x axis, within a threshold
-		hands_close_to_hips = self.hands_on_hips(
+		hand_close_to_hips = self.hand_close_to_hips(
 			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
 			landmarks[mp_pose.PoseLandmark.RIGHT_WRIST],
 		)
 
-		return feet_shoulder_width_apart and hands_close_to_hips
+		return feet_shoulder_width_apart and hand_close_to_hips
 
 
 	# Returns a boolean on whether the feet are shoulder width apart
@@ -140,8 +140,9 @@ class CoverDriveJudge():
 		feet_width = CoverDriveJudge.calculate_x_displacement(left_foot, right_foot)
 
 		return abs(shoulder_width - feet_width) < SHOULDER_WIDTH_THRESHOLD
+		
 
-	def hands_on_hips(self, hip, hand):
+	def hand_close_to_hips(self, hip, hand):
 		# assume the hands aren't on the hips if the landmarks aren't detected
 		if CoverDriveJudge.ignore_low_visibility([hip, hand]):
 			return False
@@ -150,6 +151,7 @@ class CoverDriveJudge():
 		displacement = CoverDriveJudge.calculate_x_displacement(hip, hand)
 
 		return (displacement < HAND_HIP_THRESHOLD)
+
   
 	@staticmethod
 	def generate_output_video_path(input_video_path):
