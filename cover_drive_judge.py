@@ -59,8 +59,8 @@ class CoverDriveJudge():
 		# TODO: - add logic to check that these landmarks are actually detected.
 
 		# check if the player is in the ready stance
-		ready_stance = self.is_ready_stance(results.pose_landmarks.landmark)
-		pre_shot_stance = self.check_pre_stance(results.pose_landmarks.landmark)
+		ready_stance = self.is_ready(results.pose_landmarks.landmark)
+		pre_shot_stance = self.is_pre_shot(results.pose_landmarks.landmark)
 		post_shot_stance = self.check_post_stance(results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
@@ -98,7 +98,8 @@ class CoverDriveJudge():
 			VERTICAL_ALIGNMENT_THRESHOLD,
 		)
 
-	def check_pre_stance(self, landmarks):
+	# checks whether the player is in the pre-shot stance
+	def is_pre_shot(self, landmarks):
 		return CoverDriveJudge.check_vertical_alignment(
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
@@ -107,7 +108,7 @@ class CoverDriveJudge():
 		)
 
 	# checks whether the player is in the ready stance
-	def is_ready_stance(self, landmarks):
+	def is_ready(self, landmarks):
 
 		# true if feet are shoulder width apart, within a threshold
 		feet_shoulder_width_apart = self.feet_shoulder_width_apart(
