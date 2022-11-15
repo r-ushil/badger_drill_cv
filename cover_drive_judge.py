@@ -135,29 +135,6 @@ class CoverDriveJudge():
 
 		return (displacement < HAND_HIP_THRESHOLD)
   
-	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
-	@staticmethod
-	def check_vertical_alignment(shoulder, knee, foot, tolerance):
-		vertical_alignment = CoverDriveJudge.calculate_angle(shoulder, knee, foot)
-		return (not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance)), vertical_alignment)
-
-	# Calculates angles between 3 joints, given their 3d coordinates.
-	@staticmethod
-	def calculate_angle(a, b, c):
-		a = np.array((a.x, a.y, a.z)) # First
-		b = np.array((b.x, b.y, b.z)) # Mid
-		c = np.array((c.x, c.y, c.z)) # End
-		# Calculate the angles between the vectors, in radians
-		radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-		# Convert to degrees
-		angle = np.abs(radians*180.0/np.pi)
-
-		if angle > 180.0:
-			angle = 360-angle
-
-		# print(angle)
-		return angle
-
 	@staticmethod
 	def generate_output_video_path(input_video_path):
 		output_video_directory, filename = \
