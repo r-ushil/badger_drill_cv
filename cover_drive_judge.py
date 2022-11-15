@@ -59,7 +59,7 @@ class CoverDriveJudge():
 		# TODO: - add logic to check that these landmarks are actually detected.
 
 		# check if the player is in the ready stance
-		ready_stance = self.check_ready_stance(results.pose_landmarks.landmark)
+		ready_stance = self.is_ready_stance(results.pose_landmarks.landmark)
 		pre_shot_stance = self.check_pre_stance(results.pose_landmarks.landmark)
 		post_shot_stance = self.check_post_stance(results.pose_landmarks.landmark)
 
@@ -89,6 +89,7 @@ class CoverDriveJudge():
 		x2 = CoverDriveJudge.calculate_x_displacement(middle, bottom)
 		return (x1 < threshold) and (x2 < threshold)
 
+
 	def check_post_stance(self, landmarks):
 		return CoverDriveJudge.check_vertical_alignment(
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE],
@@ -105,21 +106,24 @@ class CoverDriveJudge():
 			VERTICAL_ALIGNMENT_THRESHOLD,
 		)
 
-	def check_ready_stance(self, landmarks):
+	# checks whether the player is in the ready stance
+	def is_ready_stance(self, landmarks):
 
-		shoulder_width = self.feet_shoulder_width_apart(
+		# true if feet are shoulder width apart, within a threshold
+		feet_shoulder_width_apart = self.feet_shoulder_width_apart(
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_ANKLE],
 			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
 		)
 
-		hands_on_hips = self.hands_on_hips(
+		# true if hands are close to hips along the x axis, within a threshold
+		hands_close_to_hips = self.hands_on_hips(
 			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
 			landmarks[mp_pose.PoseLandmark.RIGHT_WRIST],
 		)
 
-		return shoulder_width and hands_on_hips
+		return feet_shoulder_width_apart and hands_close_to_hips
 
 
 	# Returns a boolean on whether the feet are shoulder width apart
