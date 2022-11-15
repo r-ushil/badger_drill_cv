@@ -4,7 +4,7 @@ import cv2
 
 SHOULDER_WIDTH_THRESHOLD = 0.05
 HAND_HIP_THRESHOLD = 0.1
-VERTICAL_THRESHOLD = 0.05
+VERTICAL_ALIGNMENT_THRESHOLD = 0.05
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -80,18 +80,27 @@ class CoverDriveJudge():
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
 
+	# checks whether landmarks are vertically aligned, within a threshold
+	@staticmethod
+	def check_vertical_alignment(top, middle, bottom, threshold):
+		x1 = CoverDriveJudge.calculate_x_displacement(top	, middle)
+		x2 = CoverDriveJudge.calculate_x_displacement(middle, bottom)
+		return (x1 < threshold) and (x2 < threshold)
+
 	def check_post_stance(self, landmarks):
-		return self.vertical_alignment(
+		return CoverDriveJudge.check_vertical_alignment(
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
+			VERTICAL_ALIGNMENT_THRESHOLD,
 		)
 
 	def check_pre_stance(self, landmarks):
-		return self.vertical_alignment(
+		return CoverDriveJudge.check_vertical_alignment(
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE],
+			VERTICAL_ALIGNMENT_THRESHOLD,
 		)
 
 	def check_ready_stance(self, landmarks):
@@ -110,10 +119,6 @@ class CoverDriveJudge():
 
 		return shoulder_width and hands_on_hips
 
-	def vertical_alignment(self, elbow, knee, heel):
-		x1 = CoverDriveJudge.calculate_x_displacement(elbow, knee)
-		x2 = CoverDriveJudge.calculate_x_displacement(knee, heel)
-		return (x1 < VERTICAL_THRESHOLD) and (x2 < VERTICAL_THRESHOLD)
 
 	# Returns a boolean on whether the feet are shoulder width apart
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
