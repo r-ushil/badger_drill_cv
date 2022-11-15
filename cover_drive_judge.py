@@ -82,7 +82,15 @@ class CoverDriveJudge():
 				))
 
 		return landmarks
-		
+
+	# Check whether feet are shoulder width apart
+	@staticmethod
+	def feet_shoulder_width_apart(left_shoulder, right_shoulder, left_foot, right_foot, threshold):
+		left_foot_distance = CoverDriveJudge.calculate_distance(left_shoulder, left_foot)
+		right_foot_distance = CoverDriveJudge.calculate_distance(right_shoulder, right_foot)
+
+		return abs(left_foot_distance - right_foot_distance) < threshold
+  
 	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 	@staticmethod
 	def check_vertical_alignment(shoulder, knee, foot, tolerance):
