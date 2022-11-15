@@ -77,6 +77,7 @@ class CoverDriveJudge():
 	def ignore_low_visibility(landmarks):
 		return any(landmark.visibility < 0.7 for landmark in landmarks)
 
+	# calculates the x displacement between two landmarks
 	@staticmethod
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
