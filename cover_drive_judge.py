@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 
 SHOULDER_WIDTH_THRESHOLD = 0.05
+HAND_HIP_THRESHOLD = 0.1
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -65,8 +66,16 @@ class CoverDriveJudge():
 			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE],
 		)
 
+		hands_on_hips = self.hands_on_hips(
+			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP],
+			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST],
+		)
+
 		image = cv2.flip(image, 0)
+
 		cv2.putText(image, f'Shoulder Width: {shoulder_width}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+		cv2.putText(image, f'Hands on Hips: {hands_on_hips}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+		cv2.putText(image, f'Ready Stance: {shoulder_width and hands_on_hips}', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
 
@@ -105,6 +114,16 @@ class CoverDriveJudge():
 		feet_width = CoverDriveJudge.calculate_x_displacement(left_foot, right_foot)
 
 		return abs(shoulder_width - feet_width) < SHOULDER_WIDTH_THRESHOLD
+
+	def hands_on_hips(self, hip, hand):
+		# assume the hands aren't on the hips if the landmarks aren't detected
+		if CoverDriveJudge.ignore_low_visibility([hip, hand]):
+			return False
+
+		# calculate the x displacement between the hands and the hips
+		displacement = CoverDriveJudge.calculate_x_displacement(hip, hand)
+
+		return (displacement < HAND_HIP_THRESHOLD)
   
 	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 	@staticmethod
