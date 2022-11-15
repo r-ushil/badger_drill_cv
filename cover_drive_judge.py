@@ -122,12 +122,6 @@ class CoverDriveJudge():
 
 		return angle
 
-	# Calculates distance between 2 joints, given their 3d coordinates.
-	def calculate_distance(a, b):
-		a = np.array((a.x, a.y, a.z))
-		b = np.array((b.x, b.y, b.z))
-		return np.linalg.norm(a-b)
-
 	@staticmethod
 	def generate_output_video_path(input_video_path):
 		output_video_directory, filename = \
