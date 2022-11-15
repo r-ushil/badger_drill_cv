@@ -1,4 +1,4 @@
 .ipynb_checkpoints
 __pycache__/
 
-videos/*_annotated.mp4
+videos/
