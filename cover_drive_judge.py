@@ -2,6 +2,7 @@ import mediapipe as mp
 import numpy as np
 import cv2
 
+SHOULDER_WIDTH_THRESHOLD = 0.05
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -49,7 +50,7 @@ class CoverDriveJudge():
 		# convert colour format back to BGR
 		image.flags.writeable = True
 		image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
+		
 		landmarks = self.generate_landmark_vectors(results)
 
 		# write pose landmarks from results onto frame
@@ -57,16 +58,16 @@ class CoverDriveJudge():
 
 		# TODO: - add logic to check that these landmarks are actually detected.
 		# check for vertical alignment
-		aligned = CoverDriveJudge.check_vertical_alignment(
-			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
-			landmarks[mp_pose.PoseLandmark.LEFT_KNEE],
-			landmarks[mp_pose.PoseLandmark.LEFT_FOOT_INDEX],
-			10
+		shoulder_width = self.feet_shoulder_width_apart(
+			results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ANKLE],
+			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE],
 		)
 
-		cv2.putText(image, f'Aligned: {aligned}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-
 		image = cv2.flip(image, 0)
+		cv2.putText(image, f'Shoulder Width: {shoulder_width}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+
 		self.video_writer.write(image)
 
 	def generate_landmark_vectors(self, results):
@@ -83,13 +84,21 @@ class CoverDriveJudge():
 
 		return landmarks
 
+	def calculate_x_displacement(a, b):
+		return abs(a.x - b.x)
+
 	# Check whether feet are shoulder width apart
 	@staticmethod
-	def feet_shoulder_width_apart(left_shoulder, right_shoulder, left_foot, right_foot, threshold):
-		left_foot_distance = CoverDriveJudge.calculate_distance(left_shoulder, left_foot)
-		right_foot_distance = CoverDriveJudge.calculate_distance(right_shoulder, right_foot)
+	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
 
-		return abs(left_foot_distance - right_foot_distance) < threshold
+		if (left_shoulder.visibility < 0.7 or right_shoulder.visibility < 0.7 or 
+			left_foot.visibility < 0.7 or right_foot.visibility < 0.7):
+			return False
+
+		shoulder_width = self.calc_distance_along_x_axis(left_shoulder, right_shoulder)
+		feet_width = self.calc_distance_along_x_axis(left_foot, right_foot)
+
+		return abs(shoulder_width - feet_width) < SHOULDER_WIDTH_THRESHOLD
   
 	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 	@staticmethod
@@ -115,8 +124,8 @@ class CoverDriveJudge():
 
 	# Calculates distance between 2 joints, given their 3d coordinates.
 	def calculate_distance(a, b):
-		a = np.array(a)
-		b = np.array(b)
+		a = np.array((a.x, a.y, a.z))
+		b = np.array((b.x, b.y, b.z))
 		return np.linalg.norm(a-b)
 
 	@staticmethod
