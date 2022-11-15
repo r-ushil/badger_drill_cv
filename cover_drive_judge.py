@@ -96,7 +96,7 @@ class CoverDriveJudge():
 		return abs(a.x - b.x)
 
 	def check_post_stance(self, landmarks):
-		post_shot = self.vertical_alignment(
+		return self.vertical_alignment(
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW],
 			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
