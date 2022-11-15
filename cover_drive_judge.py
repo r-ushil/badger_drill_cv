@@ -36,32 +36,33 @@ class CoverDriveJudge():
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
 		while frame_present:
-			self.process_frame(frame)
+			self.process_and_write_frame(frame)
 
 			frame_present, frame = self.video_capture.read()
   
-	def process_frame(self, image):
+	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
 		image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
 		image.flags.writeable = False
 
 		# run pose estimation on frame
-		# TODO: make name more specific
-		results = self.pose_estimator.process(image)
+		landmark_results = self.pose_estimator.process(image)
 
 		# convert colour format back to BGR
 		image.flags.writeable = True
 		image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
 		# write pose landmarks from results onto frame
-		mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+		mp_drawing.draw_landmarks(image, landmark_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-		# TODO: - add logic to check that these landmarks are actually detected.
+		# TODO: - add logic to check that these landmarks are actually detected. (i.e. if landmark_results.pose_landmarks is None)
 
 		# check if the player is in the ready stance
-		ready_stance = self.is_ready(results.pose_landmarks.landmark)
-		pre_shot_stance = self.is_pre_shot(results.pose_landmarks.landmark)
-		post_shot_stance = self.is_post_shot(results.pose_landmarks.landmark)
+		ready_stance = self.is_ready(landmark_results.pose_landmarks.landmark)
+		# check if the player is in the pre-shot stance
+		pre_shot_stance = self.is_pre_shot(landmark_results.pose_landmarks.landmark)
+		# check if the player is in the post-shot stance
+		post_shot_stance = self.is_post_shot(landmark_results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
 
@@ -84,7 +85,7 @@ class CoverDriveJudge():
 
 	# checks whether landmarks are vertically aligned, within a threshold
 	@staticmethod
-	def check_vertical_alignment(top, middle, bottom, threshold):
+	def is_vertically_aligned(top, middle, bottom, threshold):
 		x1 = CoverDriveJudge.calculate_x_displacement(top	, middle)
 		x2 = CoverDriveJudge.calculate_x_displacement(middle, bottom)
 		return (x1 < threshold) and (x2 < threshold)
@@ -92,7 +93,7 @@ class CoverDriveJudge():
 
 	# checks whether the player is in the post-shot stance
 	def is_post_shot(self, landmarks):
-		return CoverDriveJudge.check_vertical_alignment(
+		return CoverDriveJudge.is_vertically_aligned(
 			landmarks[mp_pose.PoseLandmark.NOSE],
 			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
 			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
@@ -101,7 +102,7 @@ class CoverDriveJudge():
 
 	# checks whether the player is in the pre-shot stance
 	def is_pre_shot(self, landmarks):
-		return CoverDriveJudge.check_vertical_alignment(
+		return CoverDriveJudge.is_vertically_aligned(
 			landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW],
 			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
 			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
@@ -140,7 +141,7 @@ class CoverDriveJudge():
 		feet_width = CoverDriveJudge.calculate_x_displacement(left_foot, right_foot)
 
 		return abs(shoulder_width - feet_width) < SHOULDER_WIDTH_THRESHOLD
-		
+
 
 	def hand_close_to_hips(self, hip, hand):
 		# assume the hands aren't on the hips if the landmarks aren't detected
