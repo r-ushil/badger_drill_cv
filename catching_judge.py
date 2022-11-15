@@ -32,14 +32,18 @@ class CatchingJudge():
   
 	def process_frame(self, frame):
 		# convert colour format from BGR to RBG
-		frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
+		gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 
-		frame.flags.writeable = False
-		# convert colour format back to BGR
-		frame.flags.writeable = True
+		# TODO: deal with the not ret case
+		_, thresh_frame = cv2.threshold(
+			gray_frame,
+			127, # Threshold value
+			255, # Maximum value
+			cv2.THRESH_BINARY
+		)
 
-		frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-		self.video_writer.write(frame)
+		out_frame = cv2.cvtColor(thresh_frame, cv2.COLOR_GRAY2BGR)
+		self.video_writer.write(out_frame)
 
 	@staticmethod
 	def generate_output_video_path(input_video_path):
