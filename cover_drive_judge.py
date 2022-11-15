@@ -92,18 +92,18 @@ class CoverDriveJudge():
 
 	def check_post_stance(self, landmarks):
 		return CoverDriveJudge.check_vertical_alignment(
-			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE],
-			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW],
-			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
+			landmarks[mp_pose.PoseLandmark.NOSE],
+			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
+			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
 			VERTICAL_ALIGNMENT_THRESHOLD,
 		)
 
 	# checks whether the player is in the pre-shot stance
 	def is_pre_shot(self, landmarks):
 		return CoverDriveJudge.check_vertical_alignment(
-			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW],
-			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
-			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW],
+			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
 			VERTICAL_ALIGNMENT_THRESHOLD,
 		)
 
