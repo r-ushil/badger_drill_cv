@@ -58,24 +58,13 @@ class CoverDriveJudge():
 		mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
 		# TODO: - add logic to check that these landmarks are actually detected.
-		# check for vertical alignment
-		shoulder_width = self.feet_shoulder_width_apart(
-			results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER],
-			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER],
-			results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ANKLE],
-			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE],
-		)
 
-		hands_on_hips = self.hands_on_hips(
-			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP],
-			results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST],
-		)
+		# check if the player is in the ready stance
+		ready_stance = self.check_ready_stance(results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
 
-		cv2.putText(image, f'Shoulder Width: {shoulder_width}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-		cv2.putText(image, f'Hands on Hips: {hands_on_hips}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-		cv2.putText(image, f'Ready Stance: {shoulder_width and hands_on_hips}', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+		cv2.putText(image, f'Ready Stance: {ready_stance}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
 
@@ -93,7 +82,6 @@ class CoverDriveJudge():
 
 		return landmarks
 
-
 	@staticmethod
 	def ignore_low_visibility(landmarks):
 		return any(landmark.visibility < 0.7 for landmark in landmarks)
@@ -101,6 +89,22 @@ class CoverDriveJudge():
 	@staticmethod
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
+
+	def check_ready_stance(self, landmarks):
+
+		shoulder_width = self.feet_shoulder_width_apart(
+			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_ANKLE],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
+		)
+
+		hands_on_hips = self.hands_on_hips(
+			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
+			landmarks[mp_pose.PoseLandmark.RIGHT_WRIST],
+		)
+
+		return shoulder_width and hands_on_hips
 
 	# Returns a boolean on whether the feet are shoulder width apart
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
