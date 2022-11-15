@@ -82,7 +82,7 @@ class CoverDriveJudge():
 				))
 
 		return landmarks
-  
+		
 	# Checks 3 joints are vertically aligned, with a tolerance on acceptable angle (in degrees)
 	@staticmethod
 	def check_vertical_alignment(shoulder, knee, foot, tolerance):
@@ -104,6 +104,12 @@ class CoverDriveJudge():
 			angle = 360-angle
 
 		return angle
+
+	# Calculates distance between 2 joints, given their 3d coordinates.
+	def calculate_distance(a, b):
+		a = np.array(a)
+		b = np.array(b)
+		return np.linalg.norm(a-b)
 
 	@staticmethod
 	def generate_output_video_path(input_video_path):
