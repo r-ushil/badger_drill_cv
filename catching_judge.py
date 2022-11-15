@@ -36,7 +36,7 @@ class CatchingJudge():
 		frame = cv2.flip(frame, -1)
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
-		mask = cv2.inRange(frame, (0, 0, 150), (30, 255, 255))
+		mask = cv2.inRange(frame, (0, 0, 170), (20, 200, 185))
 
 		contours, hierarchy = cv2.findContours(
 		    image=mask,
