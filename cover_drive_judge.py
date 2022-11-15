@@ -84,6 +84,11 @@ class CoverDriveJudge():
 
 		return landmarks
 
+
+	@staticmethod
+	def ignore_low_visibility(landmarks):
+		return any(landmark.visibility < 0.7 for landmark in landmarks)
+
 	@staticmethod
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
@@ -92,8 +97,7 @@ class CoverDriveJudge():
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
 
 		# assume the feet aren't shoulder width apart if the landmarks aren't detected
-		if (left_shoulder.visibility < 0.7 or right_shoulder.visibility < 0.7 or 
-			left_foot.visibility < 0.7 or right_foot.visibility < 0.7):
+		if CoverDriveJudge.ignore_low_visibility([left_shoulder, right_shoulder, left_foot, right_foot]):
 			return False
 
 		# calculate the x displacement between the feet and the shoulders
