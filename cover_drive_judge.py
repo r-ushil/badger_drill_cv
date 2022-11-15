@@ -63,15 +63,16 @@ class CoverDriveJudge():
 		self.frame_height = int(self.video_capture.get(4))
 		fps = int(self.video_capture.get(5))
 
-		# setup output video
 		if no_output:
 			self.video_writer = None
 		else:
-			output_video_path = self.generate_output_video_path(input_video_path)
-
-			self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
-			'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
-		# TODO: Don't run the VideoWriter in deployment
+			output_video_path = CoverDriveJudge.generate_output_video_path(input_video_path)
+			self.video_writer = cv2.VideoWriter(
+				output_video_path,
+				cv2.VideoWriter_fourcc('m', 'p', '4', 'v'),
+				fps,
+				(self.frame_width, self.frame_height),
+			)
   
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
@@ -121,29 +122,29 @@ class CoverDriveJudge():
 
 		return (average, worst_advice, penultimate_worst_advice)
   
-	def process_and_write_frame(self, image):
+	def process_and_write_frame(self, frame):
 		# convert colour format from BGR to RBG
 		frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
 		frame.flags.writeable = False
 
 		# run pose estimation on frame
-		landmark_results = self.pose_estimator.process(image)
+		landmark_results = self.pose_estimator.process(frame)
 
 		# convert colour format back to BGR
 		frame.flags.writeable = True
 		frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
 		# write pose landmarks from results onto frame
-		mp_drawing.draw_landmarks(image, landmark_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+		mp_drawing.draw_landmarks(frame, landmark_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
 		# TODO: - add logic to check that these landmarks are actually detected. (i.e. if landmark_results.pose_landmarks is None)
 
 		self.score_stance(landmark_results.pose_landmarks.landmark)
 
-		image = cv2.flip(image, 0)
+		frame = cv2.flip(frame, 0)
 
 		if self.video_writer != None:
-			self.video_writer.write(image)
+			self.video_writer.write(frame)
 
 	# scores stance based on landmarks, and returns shot classification and score
 	def score_stance(self, landmarks):
