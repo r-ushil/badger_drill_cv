@@ -4,6 +4,7 @@ import cv2
 
 SHOULDER_WIDTH_THRESHOLD = 0.05
 HAND_HIP_THRESHOLD = 0.1
+VERTICAL_THRESHOLD = 0.05
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -106,6 +107,11 @@ class CoverDriveJudge():
 
 		return shoulder_width and hands_on_hips
 
+	def vertical_alignment(self, elbow, knee, heel):
+		x1 = CoverDriveJudge.calculate_x_displacement(elbow, knee)
+		x2 = CoverDriveJudge.calculate_x_displacement(knee, heel)
+		return ((x1 < VERTICAL_THRESHOLD) and (x2 < VERTICAL_THRESHOLD), x1, x2)
+
 	# Returns a boolean on whether the feet are shoulder width apart
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
 
@@ -133,14 +139,14 @@ class CoverDriveJudge():
 	@staticmethod
 	def check_vertical_alignment(shoulder, knee, foot, tolerance):
 		vertical_alignment = CoverDriveJudge.calculate_angle(shoulder, knee, foot)
-		return not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance))
+		return (not (vertical_alignment > (180 - tolerance) and vertical_alignment < (180 + tolerance)), vertical_alignment)
 
 	# Calculates angles between 3 joints, given their 3d coordinates.
 	@staticmethod
 	def calculate_angle(a, b, c):
-		a = np.array(a) # First
-		b = np.array(b) # Mid
-		c = np.array(c) # End
+		a = np.array((a.x, a.y, a.z)) # First
+		b = np.array((b.x, b.y, b.z)) # Mid
+		c = np.array((c.x, c.y, c.z)) # End
 		# Calculate the angles between the vectors, in radians
 		radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
 		# Convert to degrees
@@ -149,6 +155,7 @@ class CoverDriveJudge():
 		if angle > 180.0:
 			angle = 360-angle
 
+		# print(angle)
 		return angle
 
 	@staticmethod
