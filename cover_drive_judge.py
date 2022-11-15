@@ -62,12 +62,14 @@ class CoverDriveJudge():
 
 		# check if the player is in the ready stance
 		ready_stance = self.check_ready_stance(results.pose_landmarks.landmark)
-		pre_stance = self.check_pre_stance(results.pose_landmarks.landmark)
+		pre_shot_stance = self.check_pre_stance(results.pose_landmarks.landmark)
+		post_shot_stance = self.check_post_stance(results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
 
 		cv2.putText(image, f'Ready Stance: {ready_stance}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-		cv2.putText(image, f'Pre Stance: {pre_stance}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+		cv2.putText(image, f'Pre Shot Stance: {pre_shot_stance}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+		cv2.putText(image, f'Post Shot Stance: {post_shot_stance}', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
 
@@ -92,6 +94,13 @@ class CoverDriveJudge():
 	@staticmethod
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
+
+	def check_post_stance(self, landmarks):
+		post_shot = self.vertical_alignment(
+			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE],
+			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW],
+			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
+		)
 
 	def check_pre_stance(self, landmarks):
 		return self.vertical_alignment(
