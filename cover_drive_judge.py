@@ -62,10 +62,12 @@ class CoverDriveJudge():
 
 		# check if the player is in the ready stance
 		ready_stance = self.check_ready_stance(results.pose_landmarks.landmark)
+		pre_stance = self.check_pre_stance(results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
 
 		cv2.putText(image, f'Ready Stance: {ready_stance}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+		cv2.putText(image, f'Pre Stance: {pre_stance}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
 
@@ -91,6 +93,13 @@ class CoverDriveJudge():
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
 
+	def check_pre_stance(self, landmarks):
+		return self.vertical_alignment(
+			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW],
+			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
+			landmarks.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE],
+		)
+
 	def check_ready_stance(self, landmarks):
 
 		shoulder_width = self.feet_shoulder_width_apart(
@@ -110,7 +119,7 @@ class CoverDriveJudge():
 	def vertical_alignment(self, elbow, knee, heel):
 		x1 = CoverDriveJudge.calculate_x_displacement(elbow, knee)
 		x2 = CoverDriveJudge.calculate_x_displacement(knee, heel)
-		return ((x1 < VERTICAL_THRESHOLD) and (x2 < VERTICAL_THRESHOLD), x1, x2)
+		return (x1 < VERTICAL_THRESHOLD) and (x2 < VERTICAL_THRESHOLD)
 
 	# Returns a boolean on whether the feet are shoulder width apart
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
