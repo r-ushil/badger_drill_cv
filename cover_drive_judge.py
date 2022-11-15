@@ -61,7 +61,7 @@ class CoverDriveJudge():
 		# check if the player is in the ready stance
 		ready_stance = self.is_ready(results.pose_landmarks.landmark)
 		pre_shot_stance = self.is_pre_shot(results.pose_landmarks.landmark)
-		post_shot_stance = self.check_post_stance(results.pose_landmarks.landmark)
+		post_shot_stance = self.is_post_shot(results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
 
@@ -90,7 +90,8 @@ class CoverDriveJudge():
 		return (x1 < threshold) and (x2 < threshold)
 
 
-	def check_post_stance(self, landmarks):
+	# checks whether the player is in the post-shot stance
+	def is_post_shot(self, landmarks):
 		return CoverDriveJudge.check_vertical_alignment(
 			landmarks[mp_pose.PoseLandmark.NOSE],
 			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
