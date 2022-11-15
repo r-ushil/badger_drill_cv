@@ -32,35 +32,31 @@ class CatchingJudge():
   
 	def process_frame(self, frame):
 		# convert colour format from BGR to RBG
-		gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
-
-		# TODO: deal with the not ret case
-		_, thresh_frame = cv2.threshold(
-			gray_frame,
-			132, # Threshold value
-			255, # Maximum value
-			cv2.THRESH_BINARY
-		)
+		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
+		frame = cv2.flip(frame, -1)
+		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
+		mask = cv2.inRange(frame, (0, 0, 150), (30, 255, 255))
 
 		contours, hierarchy = cv2.findContours(
-			image=thresh_frame, 
-			mode=cv2.RETR_TREE, 
-			method=cv2.CHAIN_APPROX_SIMPLE
-		)
-		
-		contour_frame = thresh_frame.copy()
-		cv2.drawContours(
-			image=contour_frame, 
-			contours=contours, 
-			contourIdx=-1, 
-			color=(0, 255, 0), 
-			thickness=2, 
-			lineType=cv2.LINE_AA
+		    image=mask,
+		    mode=cv2.RETR_TREE,
+		    method=cv2.CHAIN_APPROX_SIMPLE
 		)
 
-		rot_frame = cv2.cvtColor(contour_frame, cv2.COLOR_GRAY2BGR)
-		out_frame = cv2.flip(rot_frame, 0)
-		self.video_writer.write(out_frame)
+		mask = np.zeros(shape=mask.shape, dtype=np.uint8)
+		mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+
+		cv2.drawContours(
+		    image=mask,
+		    contours=contours,
+		    contourIdx=-1,
+		    color=(0, 255, 0),
+		    thickness=2,
+		    lineType=cv2.LINE_AA
+		)
+
+		self.video_writer.write(mask)
 
 	@staticmethod
 	def generate_output_video_path(input_video_path):
