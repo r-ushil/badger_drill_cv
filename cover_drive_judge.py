@@ -123,6 +123,8 @@ class CoverDriveJudge():
 			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
 		)
 
+		# TODO: Handle None case
+
 		# normalise shoulder_feet_difference to 0-1, using SHOULDER_WIDTH_THRESHOLD
 		weighting = 1 / SHOULDER_WIDTH_THRESHOLD
 		shoulder_feet_score = (SHOULDER_WIDTH_THRESHOLD - shoulder_feet_difference) * weighting
@@ -202,16 +204,17 @@ class CoverDriveJudge():
 		difference = self.difference_in_feet_and_shoulder_width(left_shoulder, right_shoulder, left_foot, right_foot)
 		return (difference is not None and difference < SHOULDER_WIDTH_THRESHOLD)
 
-	def hand_close_to_hips(self, hip, hand):
+	def hand_hip_displacement(self, hip, hand):
 		# assume the hands aren't on the hips if the landmarks aren't detected
 		if CoverDriveJudge.ignore_low_visibility([hip, hand]):
-			return False
+			return None
 
+		return CoverDriveJudge.calculate_x_displacement(hip, hand)
+
+	def hand_close_to_hips(self, hip, hand):
 		# calculate the x displacement between the hands and the hips
-		displacement = CoverDriveJudge.calculate_x_displacement(hip, hand)
-
-		return (displacement < HAND_HIP_THRESHOLD)
-
+		displacement = self.hand_hip_displacement(hip, hand)
+		return (displacement is not None and displacement < HAND_HIP_THRESHOLD)
   
 	@staticmethod
 	def generate_output_video_path(input_video_path):
