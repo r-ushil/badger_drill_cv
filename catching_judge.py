@@ -60,18 +60,20 @@ class CatchingJudge():
 		mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 		mask = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
 
-		for contour_index, _ in enumerate(contours):
-			hue_interval = 180 / len(contours)
-			hue = hue_interval * contour_index
+		contour_lens = [(cv2.arcLength(contour, closed=False), contour) for contour in contours]
+		katchet_face_len, katchet_face = max(contour_lens)
 
-			cv2.drawContours(
-				image=mask,
-				contours=contours,
-				contourIdx=contour_index,
-				color=(hue, 255, 255),
-				thickness=2,
-				lineType=cv2.LINE_AA
-			)
+		epsilon = 0.0125 * katchet_face_len
+		katchet_face_poly = cv2.approxPolyDP(katchet_face, epsilon=epsilon, closed=True)
+
+		cv2.drawContours(
+			image=mask,
+			contours=[katchet_face_poly],
+			contourIdx=0,
+			color=(0, 0, 255),
+			thickness=2,
+			lineType=cv2.LINE_AA
+		)
 
 		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
 
