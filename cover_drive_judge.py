@@ -50,6 +50,8 @@ class CoverDriveJudge():
 		)
 
 		self.video_capture = cv2.VideoCapture(input_video_path)
+		self.scores = np.zeros(len(Metrics))
+		self.frames_processed = np.zeros(len(Metrics))
 
 		if not self.video_capture.isOpened():
 			print("Error opening video file")
@@ -73,19 +75,8 @@ class CoverDriveJudge():
 		frames_processed = np.zeros(3)
 
 		while frame_present:
-			(stance, score) = self.process_and_write_frame(frame)
-
-			# add score calculated to scores array
-			if score != None:
-				scores[stance.value] += score
-				frames_processed[stance.value] += 1
-
+			self.process_and_write_frame(frame)
 			frame_present, frame = self.video_capture.read()
-
-		# calculate average score for all stances
-		print(frames_processed)
-		print(scores / frames_processed)
-		print(np.sum(scores / frames_processed) / 3)
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
@@ -111,7 +102,7 @@ class CoverDriveJudge():
 		# check if the player is in the post-shot stance
 		post_shot_stance = self.is_post_shot(landmark_results.pose_landmarks.landmark)
 
-		score_with_stance = self.score_stance(landmark_results.pose_landmarks.landmark)
+		self.score_stance(landmark_results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
 
@@ -120,22 +111,18 @@ class CoverDriveJudge():
 		cv2.putText(image, f'Post Shot Stance: {post_shot_stance}', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
-		return score_with_stance
 
 	# scores stance based on landmarks, and returns shot classification and score
 	def score_stance(self, landmarks):
 		# if the player is in the ready stance, score relative to ready stance
 		if self.is_ready(landmarks):
-			return (Stance.READY, self.score_ready_stance(landmarks))
+			self.score_ready_stance(landmarks)
 		# if the player is in the pre-shot stance, score relative to pre-shot stance
 		elif self.is_pre_shot(landmarks) and not self.is_post_shot(landmarks):
-			return (Stance.PRE_SHOT, self.score_pre_shot_stance(landmarks))
+			self.score_pre_shot_stance(landmarks)
 		# if the player is in the post-shot stance, score relative to post-shot stance
 		elif self.is_post_shot(landmarks):
-			return (Stance.POST_SHOT, self.score_post_shot_stance(landmarks))
-		# if the player is in none of the stances, the player is transistioning between stances, don't score
-		else:
-			return (Stance.TRANSITION, None)
+			self.score_post_shot_stance(landmarks)
 
 	def score_ready_stance(self, landmarks):
 		shoulder_feet_difference = self.difference_in_feet_and_shoulder_width(
@@ -161,7 +148,11 @@ class CoverDriveJudge():
 		weighting = 1 / HAND_HIP_THRESHOLD
 		hand_hip_score = (HAND_HIP_THRESHOLD - hand_hip_displacement) * weighting
 
-		return (shoulder_feet_score + hand_hip_score) / 2
+		self.scores[Metrics.FEET_SHOULDER_WIDTH.value] += shoulder_feet_score
+		self.frames_processed[Metrics.FEET_SHOULDER_WIDTH.value] += 1
+		
+		self.scores[Metrics.HAND_BY_HIP.value] += hand_hip_score
+		self.frames_processed[Metrics.HAND_BY_HIP.value] += 1
 
 	def score_pre_shot_stance(self, landmarks):	
 		IDEAL_BACKLIFT_ANGLE = 180
@@ -196,7 +187,11 @@ class CoverDriveJudge():
 		else:
 			shoulder_score = 1 - (distance_from_ideal_shoulder / DROPPED_SHOULDER_THRESHOLD)
 
-		return (shoulder_score + backlift_score) / 2
+		self.scores[Metrics.BACKLIFT.value] += backlift_score
+		self.frames_processed[Metrics.BACKLIFT.value] += 1
+
+		self.scores[Metrics.DROPPED_SHOULDER.value] += shoulder_score
+		self.frames_processed[Metrics.DROPPED_SHOULDER.value] += 1
 
 
 	def score_post_shot_stance(self, landmarks):
@@ -232,7 +227,11 @@ class CoverDriveJudge():
 		right_arm_score = (right_arm_angle - 90) * weighting
 		elbow_angles_score = (left_arm_score + right_arm_score) / 2
 
-		return (head_knee_score + elbow_angles_score) / 2
+		self.scores[Metrics.HEAD_KNEE_ALIGNMENT.value] += head_knee_score
+		self.frames_processed[Metrics.HEAD_KNEE_ALIGNMENT.value] += 1
+
+		self.scores[Metrics.ELBOW_ANGLES.value] += elbow_angles_score
+		self.frames_processed[Metrics.ELBOW_ANGLES.value] += 1
 	
 
 	# returns true if any landmarks of interest for a given frame have low visibility
