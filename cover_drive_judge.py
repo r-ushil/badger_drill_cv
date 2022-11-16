@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 from enum import Enum
 
-SHOULDER_WIDTH_THRESHOLD = 0.05
+SHOULDER_WIDTH_THRESHOLD = 0.1
 HAND_HIP_THRESHOLD = 0.1
 VERTICAL_ALIGNMENT_THRESHOLD = 0.05
 mp_drawing = mp.solutions.drawing_utils
@@ -60,7 +60,6 @@ class CoverDriveJudge():
 
 		# calculate average score for all stances
 		avgScore = np.sum(scores) / (frames_processed * 3)
-		return avgScore
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
@@ -105,11 +104,11 @@ class CoverDriveJudge():
 		# if the player is in the pre-shot stance, return 2
 		elif self.is_pre_shot(landmarks):
 			#TODO
-			return (Stance.PRE_SHOT, 0)
+			return (Stance.PRE_SHOT, None)
 		# if the player is in the post-shot stance, return 3
 		elif self.is_post_shot(landmarks):
 			#TODO
-			return (Stance.POST_SHOT, 0)
+			return (Stance.POST_SHOT, None)
 		# if the player is in none of the stances, the player is transistioning between stances
 		else:
 			#TODO
@@ -169,6 +168,7 @@ class CoverDriveJudge():
 		)
 
 	# checks whether the player is in the pre-shot stance
+	# TODO: check elbow angle with shoulder
 	def is_pre_shot(self, landmarks):
 		return CoverDriveJudge.is_vertically_aligned(
 			landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW],
