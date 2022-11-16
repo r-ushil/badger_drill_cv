@@ -52,7 +52,7 @@ class CoverDriveJudge():
 			(stance, score) = self.process_and_write_frame(frame)
 
 			# add score calculated to scores array
-			if stance != Stance.TRANSITION:
+			if score != None:
 				scores[stance.value] += score
 				frames_processed += 1
 
@@ -123,13 +123,23 @@ class CoverDriveJudge():
 			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
 		)
 
-		# TODO: Handle None case
+		hand_hip_displacement = self.hand_hip_displacement(
+			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
+			landmarks[mp_pose.PoseLandmark.RIGHT_WRIST],
+		)
+
+		if shoulder_feet_difference is None or hand_hip_displacement is None:
+			return None
 
 		# normalise shoulder_feet_difference to 0-1, using SHOULDER_WIDTH_THRESHOLD
 		weighting = 1 / SHOULDER_WIDTH_THRESHOLD
 		shoulder_feet_score = (SHOULDER_WIDTH_THRESHOLD - shoulder_feet_difference) * weighting
 
-		return shoulder_feet_score
+		# normalise hand_hip_displacement to 0-1, using HAND_HIP_THRESHOLD
+		weighting = 1 / HAND_HIP_THRESHOLD
+		hand_hip_score = (HAND_HIP_THRESHOLD - hand_hip_displacement) * weighting
+
+		return (shoulder_feet_score + hand_hip_score) / 2
 
 	# returns true if any landmarks of interest for a given frame have low visibility
 	@staticmethod
