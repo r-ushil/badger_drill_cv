@@ -3,7 +3,7 @@ import sys
 
 def main(input_filename):
     with CoverDriveJudge(input_filename) as judge:
-        judge.process_and_write_video()
+        (averageScore, advice1, advice2) = judge.process_and_write_video()
 
 
 if __name__ == "__main__":

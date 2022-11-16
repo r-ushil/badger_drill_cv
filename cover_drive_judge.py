@@ -77,6 +77,46 @@ class CoverDriveJudge():
 		while frame_present:
 			self.process_and_write_frame(frame)
 			frame_present, frame = self.video_capture.read()
+
+		return self.display_scores_and_advice()
+
+	def display_scores_and_advice(self):
+
+		# calculate average score for all stances
+		averageScores = self.scores / self.frames_processed
+		
+		stance_scores = np.zeros(3)
+		stance_scores[Stance.READY.value] = (averageScores[Metrics.HAND_BY_HIP.value] + averageScores[Metrics.FEET_SHOULDER_WIDTH.value]) / 2
+		stance_scores[Stance.PRE_SHOT.value] = (averageScores[Metrics.BACKLIFT.value] + averageScores[Metrics.DROPPED_SHOULDER.value]) / 2
+		stance_scores[Stance.POST_SHOT.value] = (averageScores[Metrics.HEAD_KNEE_ALIGNMENT.value] + averageScores[Metrics.ELBOW_ANGLES.value]) / 2
+
+		print(self.frames_processed)
+		print(self.scores)
+
+		# print out the average scores for each stance
+		print("Average scores for each stance:")
+		print("Ready stance: " + str(stance_scores[Stance.READY.value]))
+		print("Pre-shot stance: " + str(stance_scores[Stance.PRE_SHOT.value]))
+		print("Post-shot stance: " + str(stance_scores[Stance.POST_SHOT.value]))
+
+		print("Average score:")
+		average = np.sum(stance_scores) / 3
+		print(average)
+
+		# get minimum two elements from self.scores, as a two element array
+		worst_two_score_indices = np.argpartition(averageScores, 2)[:2]
+		
+		# print out the advice for the player
+		print("Advice for player:")
+
+		print(worst_two_score_indices)
+
+		worst_advice = get_advice(Metrics(worst_two_score_indices[0]))
+		penultimate_advice = (get_advice(Metrics(worst_two_score_indices[1])))
+		print(worst_advice)
+		print(penultimate_advice)
+
+		return (average, worst_advice, penultimate_advice)
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
