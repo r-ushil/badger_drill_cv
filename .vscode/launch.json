@@ -1,0 +1,39 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run Drill",
+			"type": "python",
+			"request": "launch",
+			"program": "${input:drillFile}",
+			"args": ["${input:videoUri}"],
+			"console": "integratedTerminal",
+			"justMyCode": true
+		},
+		{
+			"name": "Debug Drill",
+			"type": "python",
+			"request": "launch",
+			"program": "${input:drillFile}",
+			"args": ["${input:videoUri}"],
+			"console": "integratedTerminal",
+			"justMyCode": true
+		}
+	],
+	"inputs": [
+		{
+			"id": "videoUri",
+			"type": "promptString",
+			"description": "Video file name"
+		},
+		{
+			"id": "drillFile",
+			"type": "pickString",
+			"description": "Drill Name",
+			"options": [
+				"batting_drill.py",
+				"catching_drill.py"
+			]
+		},
+	]
+}
