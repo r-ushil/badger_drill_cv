@@ -183,14 +183,24 @@ class CoverDriveJudge():
 		)
 
 	# checks whether the player is in the pre-shot stance
-	# TODO: check elbow angle with shoulder
 	def is_pre_shot(self, landmarks):
-		return CoverDriveJudge.is_vertically_aligned(
-			landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW],
-			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
-			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
-			VERTICAL_ALIGNMENT_THRESHOLD,
+		shoulder_angle_with_heel = self.is_correct_angle(
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
+			landmarks[mp_pose.PoseLandmark.RIGHT_HEEL],
+			100,
+			150,
 		)
+
+		elbow_angle_with_shoulder = self.is_correct_angle(
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
+			140, #TODO: extract into constants, this is what works best
+			160,
+		)
+
+		return shoulder_angle_with_heel and elbow_angle_with_shoulder
 
 	# checks whether the player is in the ready stance
 	def is_ready(self, landmarks):
