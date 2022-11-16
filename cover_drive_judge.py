@@ -157,6 +157,21 @@ class CoverDriveJudge():
 		x2 = CoverDriveJudge.calculate_x_displacement(middle, bottom)
 		return (x1 < threshold) and (x2 < threshold)
 
+	#calculates angle between three joints
+	@staticmethod
+	def calculate_angle(a, b, c):
+		ab = np.array([a.x - b.x, a.y - b.y])
+		cb = np.array([c.x - b.x, c.y - b.y])
+		cosine_angle = np.dot(ab, cb) / (np.linalg.norm(ab) * np.linalg.norm(cb))
+		angle = np.arccos(cosine_angle)
+		return np.degrees(angle)
+
+	def is_correct_angle(self, a, b, c, start_threshold, end_threshold):
+		# if any of the landmarks are not visible, return false
+		if self.ignore_low_visibility([a, b, c]):
+			return False
+		
+		return self.calculate_angle(a, b, c) > start_threshold and self.calculate_angle(a, b, c) < end_threshold
 
 	# checks whether the player is in the post-shot stance
 	def is_post_shot(self, landmarks):
