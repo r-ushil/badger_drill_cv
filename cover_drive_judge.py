@@ -101,7 +101,7 @@ class CoverDriveJudge():
 	def score_stance(self, landmarks):
 		# if the player is in the ready stance, score relative to ready stance
 		if self.is_ready(landmarks):
-			return (Stance.READY, 0)
+			return (Stance.READY, self.score_ready_stance(landmarks))
 		# if the player is in the pre-shot stance, return 2
 		elif self.is_pre_shot(landmarks):
 			#TODO
@@ -115,6 +115,19 @@ class CoverDriveJudge():
 			#TODO
 			return (Stance.TRANSITION, None)
 
+	def score_ready_stance(self, landmarks):
+		shoulder_feet_difference = self.difference_in_feet_and_shoulder_width(
+			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_ANKLE],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
+		)
+
+		# normalise shoulder_feet_difference to 0-1, using SHOULDER_WIDTH_THRESHOLD
+		weighting = 1 / SHOULDER_WIDTH_THRESHOLD
+		shoulder_feet_score = (SHOULDER_WIDTH_THRESHOLD - shoulder_feet_difference) * weighting
+
+		return shoulder_feet_score
 
 	# returns true if any landmarks of interest for a given frame have low visibility
 	@staticmethod
