@@ -106,8 +106,7 @@ class CoverDriveJudge():
 			return (Stance.PRE_SHOT, self.score_pre_shot_stance(landmarks))
 		# if the player is in the post-shot stance, score relative to post-shot stance
 		elif self.is_post_shot(landmarks):
-			#TODO
-			return (Stance.POST_SHOT, None)
+			return (Stance.POST_SHOT, self.score_post_shot_stance(landmarks))
 		# if the player is in none of the stances, the player is transistioning between stances, don't score
 		else:
 			#TODO
@@ -172,6 +171,43 @@ class CoverDriveJudge():
 			dropped_shoulder_score = 1 - (distance_from_ideal_dropped_shoulder / 20)
 
 		return (backlift_score + dropped_shoulder_score) / 2
+
+
+	def score_post_shot_stance(self, landmarks):
+		head_knee_alignment = CoverDriveJudge.calculate_x_displacement(
+			landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT],
+			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
+		)
+
+		alignment_threshold = 0.1
+
+		if head_knee_alignment > alignment_threshold:
+			head_knee_score = 0
+		else:
+			weighting = 1 / alignment_threshold
+			head_knee_score = (alignment_threshold - head_knee_alignment) * weighting
+		
+		# angle is between 90 and 180 degrees, 90 is ideal
+		left_arm_angle = CoverDriveJudge.calculate_angle(
+			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
+			landmarks[mp_pose.PoseLandmark.LEFT_WRIST],
+		)
+
+		right_arm_angle = CoverDriveJudge.calculate_angle(
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW],
+			landmarks[mp_pose.PoseLandmark.RIGHT_WRIST],
+		)
+
+		# normalise angle to 0-1
+		weighting = 1 / 90
+		left_arm_score = (left_arm_angle - 90) * weighting
+		right_arm_score = (right_arm_angle - 90) * weighting
+		elbow_angles_score = (left_arm_score + right_arm_score) / 2
+
+		return (head_knee_score + elbow_angles_score) / 2
+	
 
 	# returns true if any landmarks of interest for a given frame have low visibility
 	@staticmethod
