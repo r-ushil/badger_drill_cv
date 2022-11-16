@@ -11,9 +11,10 @@ mp_pose = mp.solutions.pose
 
 
 class Stance(Enum):
-	READY = 1,
-	PRE_SHOT = 2,
-	POST_SHOT = 3,
+	READY = 0,
+	PRE_SHOT = 1,
+	POST_SHOT = 2,
+	TRANSITION = 3,
 
 class CoverDriveJudge():
 	def __init__(self, input_video_path):
@@ -42,10 +43,24 @@ class CoverDriveJudge():
   
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
+
+		# create empty scores array to store scores for each frame
+		scores = np.zeros(3)
+		frames_processed = 0
+
 		while frame_present:
-			self.process_and_write_frame(frame)
+			(stance, score) = self.process_and_write_frame(frame)
+
+			# add score calculated to scores array
+			if stance != Stance.TRANSITION:
+				scores[stance.value] += score
+				frames_processed += 1
 
 			frame_present, frame = self.video_capture.read()
+
+		# calculate average score for all stances
+		avgScore = np.sum(scores) / (frames_processed * 3)
+		return avgScore
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
@@ -71,6 +86,8 @@ class CoverDriveJudge():
 		# check if the player is in the post-shot stance
 		post_shot_stance = self.is_post_shot(landmark_results.pose_landmarks.landmark)
 
+		score_with_stance = self.score_stance(landmark_results.pose_landmarks.landmark)
+
 		image = cv2.flip(image, 0)
 
 		cv2.putText(image, f'Ready Stance: {ready_stance}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
@@ -78,6 +95,25 @@ class CoverDriveJudge():
 		cv2.putText(image, f'Post Shot Stance: {post_shot_stance}', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
+		return score_with_stance
+
+	# scores stance based on landmarks, and returns shot classification and score
+	def score_stance(self, landmarks):
+		# if the player is in the ready stance, score relative to ready stance
+		if self.is_ready(landmarks):
+			return (Stance.READY, 0)
+		# if the player is in the pre-shot stance, return 2
+		elif self.is_pre_shot(landmarks):
+			#TODO
+			return (Stance.PRE_SHOT, 0)
+		# if the player is in the post-shot stance, return 3
+		elif self.is_post_shot(landmarks):
+			#TODO
+			return (Stance.POST_SHOT, 0)
+		# if the player is in none of the stances, the player is transistioning between stances
+		else:
+			#TODO
+			return (Stance.TRANSITION, None)
 
 
 	# returns true if any landmarks of interest for a given frame have low visibility
