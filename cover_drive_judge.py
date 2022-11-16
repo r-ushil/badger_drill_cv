@@ -172,19 +172,22 @@ class CoverDriveJudge():
 		return feet_shoulder_width_apart and hand_close_to_hips
 
 
+	# calculates difference between feet width and shoulder width, returning None if visibility is too low
+	def difference_in_feet_and_shoulder_width(self, left_shoulder, right_shoulder, left_ankle, right_ankle):
+		if CoverDriveJudge.ignore_low_visibility([left_shoulder, right_shoulder, left_ankle, left_ankle]):
+			return None
+
+		# calculate the distance between the left and right shoulders
+		shoulder_width = self.calculate_x_displacement(left_shoulder, right_shoulder)
+		# calculate the distance between the left and right ankles
+		feet_width = self.calculate_x_displacement(left_ankle, right_ankle)
+		# return the difference between the shoulder and feet width
+		return abs(shoulder_width - feet_width)
+
 	# Returns a boolean on whether the feet are shoulder width apart
 	def feet_shoulder_width_apart(self, left_shoulder, right_shoulder, left_foot, right_foot):
-
-		# assume the feet aren't shoulder width apart if the landmarks aren't detected
-		if CoverDriveJudge.ignore_low_visibility([left_shoulder, right_shoulder, left_foot, right_foot]):
-			return False
-
-		# calculate the x displacement between the feet and the shoulders
-		shoulder_width = CoverDriveJudge.calculate_x_displacement(left_shoulder, right_shoulder)
-		feet_width = CoverDriveJudge.calculate_x_displacement(left_foot, right_foot)
-
-		return abs(shoulder_width - feet_width) < SHOULDER_WIDTH_THRESHOLD
-
+		difference = self.difference_in_feet_and_shoulder_width(left_shoulder, right_shoulder, left_foot, right_foot)
+		return (difference is not None and difference < SHOULDER_WIDTH_THRESHOLD)
 
 	def hand_close_to_hips(self, hip, hand):
 		# assume the hands aren't on the hips if the landmarks aren't detected
