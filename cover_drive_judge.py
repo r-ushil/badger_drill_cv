@@ -15,6 +15,30 @@ class Stance(Enum):
 	PRE_SHOT = 1
 	POST_SHOT = 2
 	TRANSITION = 3
+
+class Metrics(Enum):
+	HAND_BY_HIP = 0
+	FEET_SHOULDER_WIDTH = 1
+	BACKLIFT = 2
+	DROPPED_SHOULDER = 3
+	HEAD_KNEE_ALIGNMENT = 4
+	ELBOW_ANGLES = 5
+
+
+def get_advice(metric: Metrics):
+	match metric:
+		case Metrics.HAND_BY_HIP:
+			return "Keep your hands by your hips"
+		case Metrics.FEET_SHOULDER_WIDTH:
+			return "Keep your feet shoulder width apart"
+		case Metrics.BACKLIFT:
+			return "Watch your backlift"
+		case Metrics.DROPPED_SHOULDER:
+			return "Watch your dropped shoulder"
+		case Metrics.HEAD_KNEE_ALIGNMENT:
+			return "Watch your head-knee alignment"
+		case Metrics.ELBOW_ANGLES:
+			return "Watch your elbow angles"
 			
 class CoverDriveJudge():
 	def __init__(self, input_video_path):
