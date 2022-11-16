@@ -3,9 +3,9 @@ import numpy as np
 import cv2
 from enum import Enum
 
-SHOULDER_WIDTH_THRESHOLD = 0.1
-HAND_HIP_THRESHOLD = 0.1
-VERTICAL_ALIGNMENT_THRESHOLD = 0.05
+SHOULDER_WIDTH_THRESHOLD = 0.15
+HAND_HIP_THRESHOLD = 0.15
+VERTICAL_ALIGNMENT_THRESHOLD = 0.1
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -59,7 +59,9 @@ class CoverDriveJudge():
 			frame_present, frame = self.video_capture.read()
 
 		# calculate average score for all stances
+		print(frames_processed)
 		print(scores / frames_processed)
+		print(np.sum(scores / frames_processed) / 3)
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
@@ -102,14 +104,13 @@ class CoverDriveJudge():
 		if self.is_ready(landmarks):
 			return (Stance.READY, self.score_ready_stance(landmarks))
 		# if the player is in the pre-shot stance, score relative to pre-shot stance
-		elif self.is_pre_shot(landmarks):
+		elif self.is_pre_shot(landmarks) and not self.is_post_shot(landmarks):
 			return (Stance.PRE_SHOT, self.score_pre_shot_stance(landmarks))
 		# if the player is in the post-shot stance, score relative to post-shot stance
 		elif self.is_post_shot(landmarks):
 			return (Stance.POST_SHOT, self.score_post_shot_stance(landmarks))
 		# if the player is in none of the stances, the player is transistioning between stances, don't score
 		else:
-			#TODO
 			return (Stance.TRANSITION, None)
 
 	def score_ready_stance(self, landmarks):
@@ -139,38 +140,39 @@ class CoverDriveJudge():
 		return (shoulder_feet_score + hand_hip_score) / 2
 
 	def score_pre_shot_stance(self, landmarks):	
+		IDEAL_BACKLIFT_ANGLE = 180
+		IDEAL_BACKLIFT_ANGLE_THRESHOLD = 20
+		IDEAL_DISTANCE_BETWEEN_SHOULDERS = 0.04
+		DROPPED_SHOULDER_THRESHOLD = 0.03
+
 		backlift_angle = CoverDriveJudge.calculate_angle(
 			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
 		)
 
-		dropped_shoulder_angle = CoverDriveJudge.calculate_angle(
-			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
-			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+		difference_in_shoulder_height = CoverDriveJudge.calculate_y_displacement(
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
 		)
 
-
-		#180 ideal position, 30 degrees either side, 1 / as closer to 180 is better
-
-		distance_from_ideal_backlift = abs(180 - backlift_angle)
+		distance_from_ideal_backlift = abs(IDEAL_BACKLIFT_ANGLE - backlift_angle)
 		if distance_from_ideal_backlift == 0:
 			backlift_score = 1
-		elif distance_from_ideal_backlift > 30:
+		elif distance_from_ideal_backlift > IDEAL_BACKLIFT_ANGLE_THRESHOLD:
 			backlift_score = 0
 		else:
-			backlift_score = 1 - (distance_from_ideal_backlift / 30)
+			backlift_score = 1 - (distance_from_ideal_backlift / IDEAL_BACKLIFT_ANGLE_THRESHOLD)
 
-		distance_from_ideal_dropped_shoulder = abs(90 - dropped_shoulder_angle)
-		if distance_from_ideal_dropped_shoulder == 0:
-			dropped_shoulder_score = 1
-		elif distance_from_ideal_dropped_shoulder > 20:
-			dropped_shoulder_score = 0
+		distance_from_ideal_shoulder = abs(IDEAL_DISTANCE_BETWEEN_SHOULDERS - difference_in_shoulder_height)
+		if distance_from_ideal_shoulder == 0:
+			shoulder_score = 1
+		elif distance_from_ideal_shoulder > DROPPED_SHOULDER_THRESHOLD:
+			shoulder_score = 0
 		else:
-			dropped_shoulder_score = 1 - (distance_from_ideal_dropped_shoulder / 20)
+			shoulder_score = 1 - (distance_from_ideal_shoulder / DROPPED_SHOULDER_THRESHOLD)
 
-		return (backlift_score + dropped_shoulder_score) / 2
+		return (shoulder_score + backlift_score) / 2
 
 
 	def score_post_shot_stance(self, landmarks):
@@ -212,7 +214,7 @@ class CoverDriveJudge():
 	# returns true if any landmarks of interest for a given frame have low visibility
 	@staticmethod
 	def ignore_low_visibility(landmarks):
-		return any(landmark.visibility < 0.7 for landmark in landmarks)
+		return any(landmark.visibility < 0.6 for landmark in landmarks)
 
 	# calculates the x displacement between two landmarks
 	@staticmethod
@@ -263,14 +265,14 @@ class CoverDriveJudge():
 			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
 			landmarks[mp_pose.PoseLandmark.RIGHT_HEEL],
 			100,
-			150,
+			170,
 		)
 
 		elbow_angle_with_shoulder = self.is_correct_angle(
 			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
-			170, #TODO: extract into constants, this is what works best
+			80, #TODO: extract into constants, this is what works best
 			200,
 		)
 
