@@ -36,7 +36,19 @@ class CatchingJudge():
 		frame = cv2.flip(frame, -1)
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
-		mask = cv2.inRange(frame, (0, 0, 170), (20, 200, 185))
+
+		def h(val):
+			return float(val) * (180.0 / 360.0)
+
+		def s(val):
+			return float(val) * (255.0 / 100.0)
+
+		def v(val):
+			return float(val) * (255.0 / 100.0)
+
+		mask = cv2.inRange(frame,
+			(h(0), s(30), v(80)),
+			(h(30), s(100), v(100)))
 
 		contours, hierarchy = cv2.findContours(
 		    image=mask,
@@ -46,15 +58,22 @@ class CatchingJudge():
 
 		mask = np.zeros(shape=mask.shape, dtype=np.uint8)
 		mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+		mask = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
 
-		cv2.drawContours(
-		    image=mask,
-		    contours=contours,
-		    contourIdx=-1,
-		    color=(0, 255, 0),
-		    thickness=2,
-		    lineType=cv2.LINE_AA
-		)
+		for contour_index, _ in enumerate(contours):
+			hue_interval = 180 / len(contours)
+			hue = hue_interval * contour_index
+
+			cv2.drawContours(
+				image=mask,
+				contours=contours,
+				contourIdx=contour_index,
+				color=(hue, 255, 255),
+				thickness=2,
+				lineType=cv2.LINE_AA
+			)
+
+		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
 
 		self.video_writer.write(mask)
 
