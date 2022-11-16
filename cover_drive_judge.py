@@ -1,12 +1,19 @@
 import mediapipe as mp
 import numpy as np
 import cv2
+from enum import Enum
 
 SHOULDER_WIDTH_THRESHOLD = 0.05
 HAND_HIP_THRESHOLD = 0.1
 VERTICAL_ALIGNMENT_THRESHOLD = 0.05
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
+
+
+class Stance(Enum):
+	READY = 1,
+	PRE_SHOT = 2,
+	POST_SHOT = 3,
 
 class CoverDriveJudge():
 	def __init__(self, input_video_path):
