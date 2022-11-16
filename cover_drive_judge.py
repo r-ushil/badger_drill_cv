@@ -94,29 +94,27 @@ class CoverDriveJudge():
 		print(self.scores)
 
 		# print out the average scores for each stance
-		print("Average scores for each stance:")
+		print("\nAverage scores for each stance:")
 		print("Ready stance: " + str(stance_scores[Stance.READY.value]))
 		print("Pre-shot stance: " + str(stance_scores[Stance.PRE_SHOT.value]))
 		print("Post-shot stance: " + str(stance_scores[Stance.POST_SHOT.value]))
 
-		print("Average score:")
+		print("\nAverage score:")
 		average = np.sum(stance_scores) / 3
 		print(average)
 
-		# get minimum two elements from self.scores, as a two element array
+		# get minimum two elements from self.scores, as a two element array in the form of indices
 		worst_two_score_indices = np.argpartition(averageScores, 2)[:2]
 		
 		# print out the advice for the player
-		print("Advice for player:")
-
-		print(worst_two_score_indices)
+		print("\nAdvice for player:")
 
 		worst_advice = get_advice(Metrics(worst_two_score_indices[0]))
-		penultimate_advice = (get_advice(Metrics(worst_two_score_indices[1])))
+		penultimate_worst_advice = (get_advice(Metrics(worst_two_score_indices[1])))
 		print(worst_advice)
-		print(penultimate_advice)
+		print(penultimate_worst_advice)
 
-		return (average, worst_advice, penultimate_advice)
+		return (average, worst_advice, penultimate_worst_advice)
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
@@ -135,20 +133,9 @@ class CoverDriveJudge():
 
 		# TODO: - add logic to check that these landmarks are actually detected. (i.e. if landmark_results.pose_landmarks is None)
 
-		# check if the player is in the ready stance
-		ready_stance = self.is_ready(landmark_results.pose_landmarks.landmark)
-		# check if the player is in the pre-shot stance
-		pre_shot_stance = self.is_pre_shot(landmark_results.pose_landmarks.landmark)
-		# check if the player is in the post-shot stance
-		post_shot_stance = self.is_post_shot(landmark_results.pose_landmarks.landmark)
-
 		self.score_stance(landmark_results.pose_landmarks.landmark)
 
 		image = cv2.flip(image, 0)
-
-		cv2.putText(image, f'Ready Stance: {ready_stance}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-		cv2.putText(image, f'Pre Shot Stance: {pre_shot_stance}', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-		cv2.putText(image, f'Post Shot Stance: {post_shot_stance}', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 		self.video_writer.write(image)
 
