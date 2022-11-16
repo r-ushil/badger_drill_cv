@@ -11,11 +11,11 @@ mp_pose = mp.solutions.pose
 
 
 class Stance(Enum):
-	READY = 0,
-	PRE_SHOT = 1,
-	POST_SHOT = 2,
-	TRANSITION = 3,
-
+	READY = 0
+	PRE_SHOT = 1
+	POST_SHOT = 2
+	TRANSITION = 3
+			
 class CoverDriveJudge():
 	def __init__(self, input_video_path):
 		self.pose_estimator = mp_pose.Pose(
