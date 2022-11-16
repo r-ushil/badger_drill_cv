@@ -39,7 +39,7 @@ class CoverDriveJudge():
 		output_video_path = self.generate_output_video_path(input_video_path)
 
 		self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
-		'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
+		'm', 'p', '4', 'v'), 1, (self.frame_width, self.frame_height))
   
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
@@ -101,15 +101,15 @@ class CoverDriveJudge():
 		# if the player is in the ready stance, score relative to ready stance
 		if self.is_ready(landmarks):
 			return (Stance.READY, self.score_ready_stance(landmarks))
-		# if the player is in the pre-shot stance, return 2
+		# if the player is in the pre-shot stance, score relative to pre-shot stance
 		elif self.is_pre_shot(landmarks):
 			#TODO
-			return (Stance.PRE_SHOT, None)
-		# if the player is in the post-shot stance, return 3
+			return (Stance.PRE_SHOT, self.score_pre_shot_stance(landmarks))
+		# if the player is in the post-shot stance, score relative to post-shot stance
 		elif self.is_post_shot(landmarks):
 			#TODO
 			return (Stance.POST_SHOT, None)
-		# if the player is in none of the stances, the player is transistioning between stances
+		# if the player is in none of the stances, the player is transistioning between stances, don't score
 		else:
 			#TODO
 			return (Stance.TRANSITION, None)
@@ -149,6 +149,11 @@ class CoverDriveJudge():
 	@staticmethod
 	def calculate_x_displacement(a, b):
 		return abs(a.x - b.x)
+
+	# calculates the y displacement between two landmarks
+	@staticmethod
+	def calculate_y_displacement(a, b):
+		return abs(a.y - b.y)
 
 	# checks whether landmarks are vertically aligned, within a threshold
 	@staticmethod
@@ -196,8 +201,8 @@ class CoverDriveJudge():
 			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
-			140, #TODO: extract into constants, this is what works best
-			160,
+			160, #TODO: extract into constants, this is what works best
+			180,
 		)
 
 		return shoulder_angle_with_heel and elbow_angle_with_shoulder
