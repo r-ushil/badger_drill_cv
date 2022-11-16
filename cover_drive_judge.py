@@ -46,7 +46,7 @@ class CoverDriveJudge():
 
 		# create empty scores array to store scores for each frame
 		scores = np.zeros(3)
-		frames_processed = 0
+		frames_processed = np.zeros(3)
 
 		while frame_present:
 			(stance, score) = self.process_and_write_frame(frame)
@@ -54,12 +54,12 @@ class CoverDriveJudge():
 			# add score calculated to scores array
 			if score != None:
 				scores[stance.value] += score
-				frames_processed += 1
+				frames_processed[stance.value] += 1
 
 			frame_present, frame = self.video_capture.read()
 
 		# calculate average score for all stances
-		avgScore = np.sum(scores) / (frames_processed * 3)
+		print(scores / frames_processed)
   
 	def process_and_write_frame(self, image):
 		# convert colour format from BGR to RBG
@@ -103,7 +103,6 @@ class CoverDriveJudge():
 			return (Stance.READY, self.score_ready_stance(landmarks))
 		# if the player is in the pre-shot stance, score relative to pre-shot stance
 		elif self.is_pre_shot(landmarks):
-			#TODO
 			return (Stance.PRE_SHOT, self.score_pre_shot_stance(landmarks))
 		# if the player is in the post-shot stance, score relative to post-shot stance
 		elif self.is_post_shot(landmarks):
@@ -139,6 +138,40 @@ class CoverDriveJudge():
 		hand_hip_score = (HAND_HIP_THRESHOLD - hand_hip_displacement) * weighting
 
 		return (shoulder_feet_score + hand_hip_score) / 2
+
+	def score_pre_shot_stance(self, landmarks):	
+		backlift_angle = CoverDriveJudge.calculate_angle(
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
+		)
+
+		dropped_shoulder_angle = CoverDriveJudge.calculate_angle(
+			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
+			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
+		)
+
+
+		#180 ideal position, 30 degrees either side, 1 / as closer to 180 is better
+
+		distance_from_ideal_backlift = abs(180 - backlift_angle)
+		if distance_from_ideal_backlift == 0:
+			backlift_score = 1
+		elif distance_from_ideal_backlift > 30:
+			backlift_score = 0
+		else:
+			backlift_score = 1 - (distance_from_ideal_backlift / 30)
+
+		distance_from_ideal_dropped_shoulder = abs(90 - dropped_shoulder_angle)
+		if distance_from_ideal_dropped_shoulder == 0:
+			dropped_shoulder_score = 1
+		elif distance_from_ideal_dropped_shoulder > 20:
+			dropped_shoulder_score = 0
+		else:
+			dropped_shoulder_score = 1 - (distance_from_ideal_dropped_shoulder / 20)
+
+		return (backlift_score + dropped_shoulder_score) / 2
 
 	# returns true if any landmarks of interest for a given frame have low visibility
 	@staticmethod
@@ -201,8 +234,8 @@ class CoverDriveJudge():
 			landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
 			landmarks[mp_pose.PoseLandmark.LEFT_ELBOW],
-			160, #TODO: extract into constants, this is what works best
-			180,
+			170, #TODO: extract into constants, this is what works best
+			200,
 		)
 
 		return shoulder_angle_with_heel and elbow_angle_with_shoulder
