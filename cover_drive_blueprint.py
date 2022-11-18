@@ -1,23 +1,26 @@
 from math import isnan
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 
 from cover_drive_judge import CoverDriveJudge
-from urllib.parse import unquote
+from storage import get_object_signed_url
 
-cover_drive_blueprint = Blueprint('batting_drill', __name__)
+cover_drive_blueprint = Blueprint('cover_drive_drill', __name__)
 
-@cover_drive_blueprint.route("/", methods=["POST"])
+@cover_drive_blueprint.route("/cover-drive-drill", methods=["POST"])
 def process_batting_drill_video():
-	url = request.args.get('url', None)
-	(score, comment1, comment2) = processVideo(url)
-	return ','.join([str(int(score * 100)), comment1, comment2])
+	obj_name = request.args.get('video_object_name', None)
 
-def processVideo(url):
-    clean_url = unquote(url)
-    dodge_fix = clean_url[:77] + "%2F" + clean_url[78:]
+	if obj_name == None:
+		for key, value in request.args.items():
+			print(key, value)
+		return 'Missing video_object_name', 400
 
-    with CoverDriveJudge(dodge_fix) as judge:
-        (averageScore, advice1, advice2) = judge.process_and_write_video()
-        if isnan(averageScore):
-            averageScore = 0
-        return (averageScore, advice1, advice2)
+	obj_signed_url = get_object_signed_url(obj_name)
+
+	with CoverDriveJudge(obj_signed_url, no_output=True) as judge:
+		(score, advice1, advice2) = judge.process_and_write_video()
+
+		if isnan(score):
+			score = 0
+
+		return jsonify(score=score, advice=[advice1, advice2])
