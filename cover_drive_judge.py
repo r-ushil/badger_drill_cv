@@ -43,7 +43,7 @@ def get_advice(metric: Metrics):
 			return "Watch your elbow angles"
 			
 class CoverDriveJudge():
-	def __init__(self, input_video_path):
+	def __init__(self, input_video_path, no_output=False):
 		self.pose_estimator = mp_pose.Pose(
 			static_image_mode=False, 
 			min_detection_confidence=0.5, 
@@ -63,12 +63,15 @@ class CoverDriveJudge():
 		self.frame_height = int(self.video_capture.get(4))
 		fps = int(self.video_capture.get(5))
 
-		# setup output video 
-		output_video_path = self.generate_output_video_path(input_video_path)
+		# setup output video
+		if no_output:
+			self.video_writer = None
+		else:
+			output_video_path = self.generate_output_video_path(input_video_path)
 
+			self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
+			'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
 		# TODO: Don't run the VideoWriter in deployment
-		self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
-		'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
   
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
@@ -139,7 +142,8 @@ class CoverDriveJudge():
 
 		image = cv2.flip(image, 0)
 
-		self.video_writer.write(image)
+		if self.video_writer != None:
+			self.video_writer.write(image)
 
 	# scores stance based on landmarks, and returns shot classification and score
 	def score_stance(self, landmarks):
@@ -396,4 +400,6 @@ class CoverDriveJudge():
 	def __exit__(self, type, value, traceback):
 		self.pose_estimator.close()
 		self.video_capture.release()
-		self.video_writer.release()
+
+		if self.video_writer != None:
+			self.video_writer.release()
