@@ -3,9 +3,21 @@ from os import environ
 from google import auth
 from google.cloud import storage
 
+import google
+from google.auth.transport import requests
+from google.auth import compute_engine
+
 credentials, project = auth.default()
 
-storage_client = storage.Client(credentials=credentials)
+auth_request = requests.Request()
+credentials, project = google.auth.default()
+storage_client = storage.Client(project, credentials)
+
+signing_credentials = compute_engine.IDTokenCredentials(
+	auth_request,
+	"",
+	service_account_email=credentials.service_account_email,
+)
 
 def _get_bucket() -> storage.Bucket:
 	bucket_name = environ.get("BUCKET_NAME")
@@ -22,6 +34,6 @@ def get_object_signed_url(obj_name: str) -> str:
 
 	return bucket_obj.generate_signed_url(
 		expiration=bucket_obj_expiry,
-		credentials=credentials,
+		credentials=signing_credentials,
 		version="v4"
 	)
