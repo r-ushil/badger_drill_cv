@@ -83,16 +83,15 @@ class CoverDriveJudge():
 
 	def display_scores_and_advice(self):
 
-		# calculate average score for all stances
-		averageScores = self.scores / self.frames_processed
+		# In the case that 0 frames are processed for a score, the score
+		# will be zero, as will frame_processed, resulting in a score of 0/0=nan
+		# convert this to a score of 0
+		averageScores = np.nan_to_num(self.scores / self.frames_processed)
 		
 		stance_scores = np.zeros(3)
 		stance_scores[Stance.READY.value] = (averageScores[Metrics.HAND_BY_HIP.value] + averageScores[Metrics.FEET_SHOULDER_WIDTH.value]) / 2
 		stance_scores[Stance.PRE_SHOT.value] = (averageScores[Metrics.BACKLIFT.value] + averageScores[Metrics.DROPPED_SHOULDER.value]) / 2
 		stance_scores[Stance.POST_SHOT.value] = (averageScores[Metrics.HEAD_KNEE_ALIGNMENT.value] + averageScores[Metrics.ELBOW_ANGLES.value]) / 2
-
-		print(self.frames_processed)
-		print(self.scores)
 
 		# print out the average scores for each stance
 		print("\nAverage scores for each stance:")
