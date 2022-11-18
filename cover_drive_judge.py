@@ -64,8 +64,9 @@ class CoverDriveJudge():
 		# setup output video 
 		output_video_path = self.generate_output_video_path(input_video_path)
 
+		# TODO: Don't run the VideoWriter in deployment
 		self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
-		'm', 'p', '4', 'v'), 1, (self.frame_width, self.frame_height))
+		'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
   
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
