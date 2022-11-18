@@ -20,4 +20,7 @@ def get_object_signed_url(obj_name: str) -> str:
     bucket_obj = _get_object(obj_name)
     bucket_obj_expiry = timedelta(minutes=5)
 
-    return bucket_obj.generate_signed_url(expiration=bucket_obj_expiry)
+    return bucket_obj.generate_signed_url(
+        expiration=bucket_obj_expiry,
+        credentials=credentials,
+    )
