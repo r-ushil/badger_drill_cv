@@ -16,6 +16,8 @@ class Stance(Enum):
 	POST_SHOT = 2
 	TRANSITION = 3
 
+# TODO: Associate metrics with the drill stage from which they originated, remove
+# hard coded logic
 class Metrics(Enum):
 	HAND_BY_HIP = 0
 	FEET_SHOULDER_WIDTH = 1
