@@ -1,28 +1,11 @@
-import os
-import math
+from os import environ
+from flask import Flask
 
-from flask import Flask, request
-from cover_drive_judge import CoverDriveJudge
-from urllib.parse import unquote
+from cover_drive_blueprint import cover_drive_blueprint
 
 app = Flask(__name__)
 
-def processVideo(url):
-	clean_url = unquote(url)
-	dodge_fix = clean_url[:77] + "%2F" + clean_url[78:]
-
-	with CoverDriveJudge(dodge_fix) as judge:
-		(averageScore, advice1, advice2) = judge.process_and_write_video()
-		if math.isnan(averageScore):
-			averageScore = 0
-		return (averageScore, advice1, advice2)
-
-@app.route("/", methods=["GET"])
-def generate_response():
-	url = request.args.get('url', None)
-	(score, comment1, comment2) = processVideo(url)
-	return ','.join([str(int(score * 100)), comment1, comment2])
-
+app.register_blueprint(cover_drive_blueprint)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(debug=True, host="0.0.0.0", port=int(environ.get("PORT", 8080)))
