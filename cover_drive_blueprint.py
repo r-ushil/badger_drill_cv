@@ -23,4 +23,4 @@ def process_batting_drill_video():
 		if isnan(score):
 			score = 0
 
-		return jsonify(score=score, advice=[advice1, advice2])
+		return ','.join([str(int(score * 100)), advice1, advice2])
