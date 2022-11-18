@@ -1,18 +1,11 @@
 from datetime import timedelta
 from os import environ
 from google import auth
-from google.auth import compute_engine
-from google.auth.transport import requests
 from google.cloud import storage
 
 credentials, project = auth.default()
-signing_credentials = compute_engine.IDTokenCredentials(
-	requests.Request(),
-	"",
-	service_account_email=credentials.service_account_email
-)
 
-storage_client = storage.Client(credentials=signing_credentials)
+storage_client = storage.Client(credentials=credentials)
 
 def _get_bucket() -> storage.Bucket:
 	bucket_name = environ.get("BUCKET_NAME")
@@ -29,6 +22,6 @@ def get_object_signed_url(obj_name: str) -> str:
 
 	return bucket_obj.generate_signed_url(
 		expiration=bucket_obj_expiry,
-		credentials=signing_credentials,
+		credentials=credentials,
 		version="v4"
 	)
