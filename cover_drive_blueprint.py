@@ -6,7 +6,7 @@ from storage import get_object_signed_url
 
 cover_drive_blueprint = Blueprint('cover_drive_drill', __name__)
 
-@cover_drive_blueprint.route("/cover-drive-drill", methods=["POST"])
+@cover_drive_blueprint.route("/cover-drive-drill", methods=["GET"])
 def process_batting_drill_video():
 	obj_name = request.args.get('video_object_name', None)
 
