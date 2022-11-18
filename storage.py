@@ -1,8 +1,11 @@
 from datetime import timedelta
 from os import environ
 from google.cloud import storage
+from google import auth
 
-storage_client = storage.Client()
+credentials, project = auth.default()
+
+storage_client = storage.Client(credentials=credentials)
 
 def _get_bucket() -> storage.Bucket:
     bucket_name = environ.get("BUCKET_NAME")
