@@ -66,6 +66,13 @@ class CatchingJudge():
 		epsilon = 0.0125 * katchet_face_len
 		katchet_face_poly = cv2.approxPolyDP(katchet_face, epsilon=epsilon, closed=True)
 
+		points = []
+		for point in katchet_face_poly:
+			points.append([point[0][0], point[0][1]])
+
+		points.sort()
+		bottom_left_point = points[0] if points[0][1] > points[1][1] else points[1]
+
 		cv2.drawContours(
 			image=mask,
 			contours=[katchet_face_poly],
@@ -75,6 +82,7 @@ class CatchingJudge():
 			lineType=cv2.LINE_AA
 		)
 
+		cv2.circle(mask, (bottom_left_point[0], bottom_left_point[1]), 10, (0, 0, 255), -1)
 		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
 
 		self.video_writer.write(mask)
