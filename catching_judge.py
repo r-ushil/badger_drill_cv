@@ -61,7 +61,16 @@ class CatchingJudge():
 		mask = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
 
 		contour_lens = [(cv2.arcLength(contour, closed=False), contour) for contour in contours]
-		katchet_face_len, katchet_face = max(contour_lens)
+
+		# get the longest contour from the list
+		contour_lens.sort(key=lambda x: x[0], reverse=True)
+
+		# if no contours were found, return the original frame
+		if len(contour_lens) == 0:
+			return
+
+		katchet_face_len = contour_lens[0][0]
+		katchet_face = contour_lens[0][1]
 
 		epsilon = 0.0125 * katchet_face_len
 		katchet_face_poly = cv2.approxPolyDP(katchet_face, epsilon=epsilon, closed=True)
