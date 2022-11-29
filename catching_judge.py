@@ -33,6 +33,19 @@ class CatchingJudge():
 	def _resize(self, img):
 		return cv2.resize(img, (975, 250))
 
+	def detect_ball(self, frame):
+		# convert to HSV
+		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+		# define range of blue color in HSV (red turns to blue in HSV)
+		lower_blue = np.array([160, 120, 120])
+		upper_blue = np.array([180, 255, 255])
+
+		# Threshold the HSV image to get only blue colors
+		mask = cv2.inRange(frame, lower_blue, upper_blue)
+
+		return cv2.bitwise_and(frame, frame, mask=mask)
+
 	def katchet_board_detection(self, frame):
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
