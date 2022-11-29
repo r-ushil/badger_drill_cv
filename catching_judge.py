@@ -7,6 +7,7 @@ mp_pose = mp.solutions.pose
 
 
 class CatchingJudge():
+
     def __init__(self, input_video_path):
         self.video_capture = cv2.VideoCapture(input_video_path)
 
@@ -17,6 +18,8 @@ class CatchingJudge():
         self.frame_width = int(self.video_capture.get(3))
         self.frame_height = int(self.video_capture.get(4))
         fps = int(self.video_capture.get(5))
+
+        self.ball_positions = []
 
         # setup output video
         output_video_path = CatchingJudge.generate_output_video_path(
@@ -85,8 +88,10 @@ class CatchingJudge():
 
         # draw the smallest circle
         if len(detected) > 0:
-            _, centre, radius = detected[0]
-            cv2.circle(frame, centre, radius, (0, 255, 0), 2)
+            self.ball_positions.append(detected[0])
+
+        for (area, centre, radius) in self.ball_positions:
+            cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
 
         cv2.imshow('frame', self._resize(frame))
         cv2.waitKey(1)
