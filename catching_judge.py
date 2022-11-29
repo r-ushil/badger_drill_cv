@@ -33,7 +33,7 @@ class CatchingJudge():
             frame_present, frame = self.video_capture.read()
 
     def _resize(self, img):
-        return cv2.resize(img, (975, 250))
+        return cv2.resize(img, (375, 750))
 
     def detect_ball(self, frame):
         # convert to HSV
@@ -88,7 +88,7 @@ class CatchingJudge():
             _, centre, radius = detected[0]
             cv2.circle(frame, centre, radius, (0, 255, 0), 2)
 
-        cv2.imshow('frame', self.resize(frame))
+        cv2.imshow('frame', self._resize(frame))
         cv2.waitKey(1)
 
         return frame
