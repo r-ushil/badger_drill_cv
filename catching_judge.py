@@ -40,8 +40,8 @@ class CatchingJudge():
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # define range of blue color in HSV (red turns to blue in HSV)
-        lower_blue = np.array([160, 120, 120])
-        upper_blue = np.array([180, 255, 255])
+        lower_blue = np.array([160, 160, 100])
+        upper_blue = np.array([190, 160, 135])
 
         # Threshold the HSV image to get only blue colors
         mask = cv2.inRange(frame, lower_blue, upper_blue)
@@ -69,7 +69,7 @@ class CatchingJudge():
             circularity = 4 * np.pi * (area / (perimeter * perimeter))
 
             min_circularity = 0.6
-            min_area = 50
+            min_area = 30
 
             (x, y), radius = cv2.minEnclosingCircle(c)
 
