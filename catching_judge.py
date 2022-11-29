@@ -44,7 +44,11 @@ class CatchingJudge():
 		# Threshold the HSV image to get only blue colors
 		mask = cv2.inRange(frame, lower_blue, upper_blue)
 
-		return cv2.bitwise_and(frame, frame, mask=mask)
+		# use morphology to remove noise
+		kernel = np.ones((3, 3), np.uint8)
+		mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernel, iterations=5)
+
+		self.video_writer.write(mask)
 
 	def katchet_board_detection(self, frame):
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
