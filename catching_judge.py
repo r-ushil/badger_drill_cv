@@ -76,7 +76,7 @@ class CatchingJudge():
             centre = (int(x), int(y))
             radius = int(radius)
 
-						# add blob information if exceeds thresholds
+            # add blob information if exceeds thresholds
             if circularity > min_circularity and area > min_area:
                 detected.append((area, centre, radius))
 
@@ -90,6 +90,8 @@ class CatchingJudge():
 
         cv2.imshow('frame', self.resize(frame))
         cv2.waitKey(1)
+
+        return frame
 
     def katchet_board_detection(self, frame):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -160,9 +162,9 @@ class CatchingJudge():
         # gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
         frame = cv2.flip(frame, -1)
 
-        mask = self.katchet_board_detection(frame)
-
-        self.video_writer.write(mask)
+        # mask = self.katchet_board_detection(frame)
+        ball_detected = self.detect_ball(frame)
+        self.video_writer.write(ball_detected)
 
     @staticmethod
     def generate_output_video_path(input_video_path):
