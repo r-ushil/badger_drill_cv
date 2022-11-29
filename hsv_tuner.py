@@ -2,6 +2,23 @@ import cv2
 import numpy as np
 import sys
 
+
+# default values for the HSV trackbars
+hMin = sMin = vMin = hMax = sMax = vMax = 0
+phMin = psMin = pvMin = phMax = psMax = pvMax = 0
+
+def print_changes():
+  # print changes
+  if ((phMin != hMin) | (psMin != sMin) | (pvMin != vMin) | (phMax != hMax) | (psMax != sMax) | (pvMax != vMax)):
+      print("(hMin = %d , sMin = %d, vMin = %d), (hMax = %d , sMax = %d, vMax = %d)" % (
+          hMin, sMin, vMin, hMax, sMax, vMax))
+      phMin = hMin
+      psMin = sMin
+      pvMin = vMin
+      phMax = hMax
+      psMax = sMax
+      pvMax = vMax
+
 def setup_trackbars():
     # create window for trackbars
     cv2.namedWindow("image")
