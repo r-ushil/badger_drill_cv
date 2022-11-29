@@ -2,6 +2,27 @@ import cv2
 import numpy as np
 import sys
 
+def setup_trackbars():
+    # create window for trackbars
+    cv2.namedWindow("image")
+
+    # create trackbars for color change
+    cv2.createTrackbar('HMin', 'image', 0, 179, nothing)
+    cv2.createTrackbar('SMin', 'image', 0, 255, nothing)
+    cv2.createTrackbar('VMin', 'image', 0, 255, nothing)
+    cv2.createTrackbar('HMax', 'image', 0, 179, nothing)
+    cv2.createTrackbar('SMax', 'image', 0, 255, nothing)
+    cv2.createTrackbar('VMax', 'image', 0, 255, nothing)
+
+    # nothing function for OpenCV
+    def nothing(x):
+        pass
+
+    # set default value for HSV bars
+    cv2.setTrackbarPos('HMax', 'image', 179)
+    cv2.setTrackbarPos('SMax', 'image', 255)
+    cv2.setTrackbarPos('VMax', 'image', 255)
+
 def tuner(input_filename):
 
     cap = cv2.VideoCapture(input_filename)
