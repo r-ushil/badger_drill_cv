@@ -9,6 +9,9 @@ import sys
 hMin = sMin = vMin = hMax = sMax = vMax = 0
 phMin = psMin = pvMin = phMax = psMax = pvMax = 0
 
+def resize(img):
+    return cv2.resize(img, (375, 750))
+
 def print_changes():
   # print changes
   if ((phMin != hMin) | (psMin != sMin) | (pvMin != vMin) | (phMax != hMax) | (psMax != sMax) | (pvMax != vMax)):
@@ -77,7 +80,7 @@ def tuner(input_filename):
             print_changes()
 
             # Display result image, cycle using 'n' key
-            cv2.imshow('image', result)
+            cv2.imshow('image', resize(result))
             if cv2.waitKey(10) & 0xFF == ord('n'):
                 break
 
