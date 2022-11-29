@@ -30,6 +30,9 @@ class CatchingJudge():
 
 			frame_present, frame = self.video_capture.read()
 
+	def _resize(self, img):
+		return cv2.resize(img, (975, 250))
+
 	def katchet_board_detection(self, frame):
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
