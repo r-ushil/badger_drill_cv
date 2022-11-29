@@ -1,32 +1,40 @@
 import cv2
 import numpy as np
 import sys
+from enum import Enum
 
 # Otto - Through the legs
 # (hMin = 130 , sMin = 166, vMin = 0), (hMax = 179 , sMax = 255, vMax = 255)
 
 # default values for the HSV trackbars
-hMin = sMin = vMin = hMax = sMax = vMax = 0
-phMin = psMin = pvMin = phMax = psMax = pvMax = 0
+
+class Params(Enum):
+    hMin = 0
+    sMin = 1
+    vMin = 2
+    hMax = 3
+    sMax = 4
+    vMax = 5
 
 def resize(img):
     return cv2.resize(img, (375, 750))
 
-def print_changes():
+def print_changes(prev, curr):
   # print changes
-  if ((phMin != hMin) | (psMin != sMin) | (pvMin != vMin) | (phMax != hMax) | (psMax != sMax) | (pvMax != vMax)):
-      print("(hMin = %d , sMin = %d, vMin = %d), (hMax = %d , sMax = %d, vMax = %d)" % (
-          hMin, sMin, vMin, hMax, sMax, vMax))
-      phMin = hMin
-      psMin = sMin
-      pvMin = vMin
-      phMax = hMax
-      psMax = sMax
-      pvMax = vMax
+
+  if not np.array_equal(prev, curr):
+    print('HSV values changed:', curr)
+    return curr.copy()
+  
+  return prev
 
 def setup_trackbars():
     # create window for trackbars
     cv2.namedWindow("image")
+
+    # nothing function for OpenCV
+    def nothing(x):
+        pass
 
     # create trackbars for color change
     cv2.createTrackbar('HMin', 'image', 0, 179, nothing)
@@ -35,10 +43,6 @@ def setup_trackbars():
     cv2.createTrackbar('HMax', 'image', 0, 179, nothing)
     cv2.createTrackbar('SMax', 'image', 0, 255, nothing)
     cv2.createTrackbar('VMax', 'image', 0, 255, nothing)
-
-    # nothing function for OpenCV
-    def nothing(x):
-        pass
 
     # set default value for HSV bars
     cv2.setTrackbarPos('HMax', 'image', 179)
@@ -51,6 +55,9 @@ def tuner(input_filename):
 
     setup_trackbars()
 
+    curr = np.zeros(len(Params))
+    prev = np.zeros(len(Params))
+
     # read frame
     frame_present, frame = cap.read()
 
@@ -61,23 +68,23 @@ def tuner(input_filename):
         while True:
 
             # get current positions of all trackbars
-            hMin = cv2.getTrackbarPos('HMin', 'image')
-            sMin = cv2.getTrackbarPos('SMin', 'image')
-            vMin = cv2.getTrackbarPos('VMin', 'image')
-            hMax = cv2.getTrackbarPos('HMax', 'image')
-            sMax = cv2.getTrackbarPos('SMax', 'image')
-            vMax = cv2.getTrackbarPos('VMax', 'image')
+            curr[Params.hMin.value] = cv2.getTrackbarPos('HMin', 'image')
+            curr[Params.sMin.value] = cv2.getTrackbarPos('SMin', 'image')
+            curr[Params.vMin.value] = cv2.getTrackbarPos('VMin', 'image')
+            curr[Params.hMax.value] = cv2.getTrackbarPos('HMax', 'image')
+            curr[Params.sMax.value] = cv2.getTrackbarPos('SMax', 'image')
+            curr[Params.vMax.value] = cv2.getTrackbarPos('VMax', 'image')
 
             # Set minimum and max HSV values to display
-            lower = np.array([hMin, sMin, vMin])
-            upper = np.array([hMax, sMax, vMax])
+            lower = curr[:3]
+            upper = curr[3:]
 
             # convert to HSV
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             mask = cv2.inRange(hsv, lower, upper)
             result = cv2.bitwise_and(frame, frame, mask=mask)
 
-            print_changes()
+            prev = print_changes(prev, curr)
 
             # Display result image, cycle using 'n' key
             cv2.imshow('image', resize(result))
