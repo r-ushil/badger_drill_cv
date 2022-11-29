@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import sys
 
+# Otto - Through the legs
+# (hMin = 130 , sMin = 166, vMin = 0), (hMax = 179 , sMax = 255, vMax = 255)
 
 # default values for the HSV trackbars
 hMin = sMin = vMin = hMax = sMax = vMax = 0
@@ -44,6 +46,8 @@ def tuner(input_filename):
 
     cap = cv2.VideoCapture(input_filename)
 
+    setup_trackbars()
+
     # read frame
     frame_present, frame = cap.read()
 
@@ -53,8 +57,27 @@ def tuner(input_filename):
 
         while True:
 
+            # get current positions of all trackbars
+            hMin = cv2.getTrackbarPos('HMin', 'image')
+            sMin = cv2.getTrackbarPos('SMin', 'image')
+            vMin = cv2.getTrackbarPos('VMin', 'image')
+            hMax = cv2.getTrackbarPos('HMax', 'image')
+            sMax = cv2.getTrackbarPos('SMax', 'image')
+            vMax = cv2.getTrackbarPos('VMax', 'image')
+
+            # Set minimum and max HSV values to display
+            lower = np.array([hMin, sMin, vMin])
+            upper = np.array([hMax, sMax, vMax])
+
+            # convert to HSV
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            mask = cv2.inRange(hsv, lower, upper)
+            result = cv2.bitwise_and(frame, frame, mask=mask)
+
+            print_changes()
+
             # Display result image, cycle using 'n' key
-            cv2.imshow('image', frame)
+            cv2.imshow('image', result)
             if cv2.waitKey(10) & 0xFF == ord('n'):
                 break
 
