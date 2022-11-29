@@ -29,11 +29,8 @@ class CatchingJudge():
 			self.process_frame(frame)
 
 			frame_present, frame = self.video_capture.read()
-  
-	def process_frame(self, frame):
-		# convert colour format from BGR to RBG
-		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
-		frame = cv2.flip(frame, -1)
+
+	def katchet_board_detection(self, frame):
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
 
@@ -93,6 +90,14 @@ class CatchingJudge():
 
 		cv2.circle(mask, (bottom_left_point[0], bottom_left_point[1]), 10, (0, 0, 255), -1)
 		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
+
+  
+	def process_frame(self, frame):
+		# convert colour format from BGR to RBG
+		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
+		frame = cv2.flip(frame, -1)
+
+		mask = self.katchet_board_detection(frame)
 
 		self.video_writer.write(mask)
 
