@@ -6,13 +6,15 @@ class Plane:
 		assert p2.shape == (3, )
 		assert p3.shape == (3, )
 
+		self.p = p1
+
 		# Get two vectors along the plane
-		v1 = p2 - p1
-		v2 = p3 - p1
+		self.v1 = (p2 - p1) / np.linalg.norm(p2 - p1)
+		self.v2 = (p3 - p1) / np.linalg.norm(p3 - p1)
 
 		# Calculate normal vector d, store as plane representation:
 		# ax + by + cz = d
-		self.n = np.cross(v1, v2)
+		self.n = np.cross(self.v1, self.v2)
 		self.d = np.dot(self.n, p1)
 
 	def intersects_with_point(self, p):
