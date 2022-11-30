@@ -19,6 +19,13 @@ class CatchingJudge():
         self.frame_height = int(self.video_capture.get(4))
         fps = int(self.video_capture.get(5))
 
+        self.pose_estimator = mp_pose.Pose(
+            static_image_mode=False,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5,
+            model_complexity=2,    
+        )
+
         self.ball_positions = []
 
         # setup output video
@@ -97,6 +104,8 @@ class CatchingJudge():
         cv2.waitKey(1)
 
         return frame
+        
+        
 
     def katchet_board_detection(self, frame):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
