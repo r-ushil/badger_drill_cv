@@ -21,12 +21,17 @@ class Plane:
 		assert p.shape == (3, )
 
 		TOLERANCE = 0.000001
-		calculated_d = np.dot(self.n, p) - self.d
+		calculated_d_diff = np.dot(self.n, p) - self.d
 
-		return calculated_d < TOLERANCE
+		return calculated_d_diff < TOLERANCE
 
 
+	# Returns a grid of points centred at the first point the plane was
+	# initialized from.
+	# Spaced by grid_spacing, containing grid_side_length^2 points.
 	def sample_grid_points(self, grid_side_length, grid_spacing=1):
+
+
 		# Ensure the grid side length is odd so it is centerable on self.p
 		if grid_side_length % 2 == 0: grid_side_length += 1
 
@@ -36,8 +41,9 @@ class Plane:
 				v1_factor = x - (grid_side_length // 2)
 				v2_factor = y - (grid_side_length // 2)
 
-				point = self.p + (v1_factor * grid_spacing * self.v1)\
-							   + (v2_factor * grid_spacing * self.v2)
+				point = self.p\
+					+ (v1_factor * grid_spacing * self.v1)\
+					+ (v2_factor * grid_spacing * self.v2)
 
 				points.append(point)
 		
