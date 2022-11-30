@@ -20,7 +20,10 @@ class Plane:
 	def intersects_with_point(self, p):
 		assert p.shape == (3, )
 
-		return np.dot(self.n, p) == self.d
+		TOLERANCE = 0.000001
+		calculated_d = np.dot(self.n, p) - self.d
+
+		return calculated_d < TOLERANCE
 
 
 	def sample_grid_points(self, grid_side_length, grid_spacing=1):
