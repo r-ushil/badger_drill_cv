@@ -100,12 +100,24 @@ class CatchingJudge():
         for (area, centre, radius) in self.ball_positions:
             cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
 
-        cv2.imshow('frame', self._resize(frame))
+        # UNCOMMENT TO SHOW MASK FOR DEBUGGING
+        # cv2.imshow('frame', self._resize(frame))
+        # cv2.waitKey(1)
+
+        return frame
+
+        
+    def detect_pose(self, frame):
+        # Convert the BGR image to RGB before processing.
+        results = self.pose_estimator.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        mp_drawing.draw_landmarks(
+            frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+        # UNCOMMENT TO SHOW POSE DETECTION FOR DEBUGGING
+        cv2.imshow('MediaPipe Pose', self._resize(frame))
         cv2.waitKey(1)
 
         return frame
-        
-        
 
     def katchet_board_detection(self, frame):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -178,7 +190,11 @@ class CatchingJudge():
 
         # mask = self.katchet_board_detection(frame)
         ball_detected = self.detect_ball(frame)
-        self.video_writer.write(ball_detected)
+
+        # run pose estimation on frame
+        pose_detected = self.detect_pose(ball_detected)
+
+        self.video_writer.write(pose_detected)
 
     @staticmethod
     def generate_output_video_path(input_video_path):
