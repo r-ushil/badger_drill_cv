@@ -22,6 +22,24 @@ class Plane:
 
 		return np.dot(self.n, p) == self.d
 
+
+	def sample_grid_points(self, grid_side_length, grid_spacing=1):
+		# Ensure the grid side length is odd so it is centerable on self.p
+		if grid_side_length % 2 == 0: grid_side_length += 1
+
+		points = []
+		for x in range(grid_side_length):
+			for y in range(grid_side_length):
+				v1_factor = x - (grid_side_length // 2)
+				v2_factor = y - (grid_side_length // 2)
+
+				point = self.p + (v1_factor * grid_spacing * self.v1)\
+							   + (v2_factor * grid_spacing * self.v2)
+
+				points.append(point)
+		
+		return points
+
 def main():
 	p1 = np.array([1, 2, 3])
 	p2 = np.array([4, 9, 6])
@@ -29,8 +47,9 @@ def main():
 
 	plane = Plane(p1, p2, p3)
 
-	p4 = np.array([5, 6, 4])
-	print(plane.intersects_with_point(p4))
+	for p in plane.sample_grid_points(3, 1):
+		print(plane.intersects_with_point(p))
+
 
 if __name__ == "__main__":
 	main()
