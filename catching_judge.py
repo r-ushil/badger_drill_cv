@@ -5,25 +5,18 @@ import cv2
 from numpy import array, average, sort
 from pose_estimator import CameraIntrinsics, PoseEstimator
 
+from judge import Judge
 from katchet_board import KatchetBoard
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-class CatchingJudge():
+class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
 	__cam_intrinsics: CameraIntrinsics
 
 	def __init__(self, input_video_path, cam_intrinsics: CameraIntrinsics):
-		self.video_capture = cv2.VideoCapture(input_video_path)
-
-		if not self.video_capture.isOpened():
-			print("Error opening video file")
-			raise TypeError
-
-		self.frame_width = int(self.video_capture.get(3))
-		self.frame_height = int(self.video_capture.get(4))
-		fps = int(self.video_capture.get(5))
+		super().__init__(input_video_path)
 
 		self.pose_estimator = mp_pose.Pose(
 			static_image_mode=False,
@@ -34,19 +27,12 @@ class CatchingJudge():
 
 		self.ball_positions = []
 
-		# setup output video
-		output_video_path = CatchingJudge.generate_output_video_path(
-			input_video_path)
-
-		self.video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(
-			'm', 'p', '4', 'v'), fps, (self.frame_width, self.frame_height))
+		self.__cam_intrinsics = cam_intrinsics
+		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
-		frame_present, frame = self.video_capture.read()
-		while frame_present:
+		for frame in self.get_frames():
 			self.process_frame(frame)
-
-			frame_present, frame = self.video_capture.read()
 
 	def _resize(self, img):
 		return cv2.resize(img, (375, 750))
@@ -120,12 +106,14 @@ class CatchingJudge():
 			frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
 		# UNCOMMENT TO SHOW POSE DETECTION FOR DEBUGGING
-		cv2.imshow('MediaPipe Pose', self._resize(frame))
-		cv2.waitKey(1)
+		# cv2.imshow('MediaPipe Pose', self._resize(frame))
+		# cv2.waitKey(1)
 
 		return frame
 
 	def katchet_board_detection(self, frame):
+		# convert colour format from BGR to RBG
+		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
 
@@ -162,8 +150,7 @@ class CatchingJudge():
 		if len(contour_lens) == 0:
 			# Detected no contours
 			mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
-			self.video_writer.write(mask)
-			return
+			return mask
 
 		katchet_face_len = contour_lens[0][0]
 		katchet_face = contour_lens[0][1]
@@ -175,8 +162,7 @@ class CatchingJudge():
 		if not len(katchet_face_poly) == 4:
 			# Failed to detect a quadrilateral
 			mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
-			self.video_writer.write(mask)
-			return
+			return mask
 
 		cv2.drawContours(
 			image=mask,
@@ -195,19 +181,22 @@ class CatchingJudge():
 				self.draw_point(array([[x], [y], [.0]], dtype=np.float64), mask)
 
 		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
+		return mask
 
 	def process_frame(self, frame):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.flip(frame, -1)
 
-		# mask = self.katchet_board_detection(frame)
+		board_detected = self.katchet_board_detection(frame)
 		ball_detected = self.detect_ball(frame)
 
 		# run pose estimation on frame
 		pose_detected = self.detect_pose(ball_detected)
 
-		self.video_writer.write(pose_detected)
+		output_frame = cv2.bitwise_or(board_detected, pose_detected)
+
+		self.write_frame(output_frame)
 
 	def estimate_katchet_face(self, katchet_face):
 		katchet_board = KatchetBoard.from_vertices_2d(katchet_face)
@@ -231,22 +220,3 @@ class CatchingJudge():
 
 	def project_point(self, point: np.ndarray[(3, 1), np.float64]):
 		return self.__cam_pose_estimator.project(point)
-
-	@staticmethod
-	def generate_output_video_path(input_video_path):
-		output_video_directory, filename = \
-			input_video_path[:input_video_path.rfind(
-				'/')+1], input_video_path[input_video_path.rfind('/')+1:]
-
-		input_video_filename, input_video_extension = filename.split('.')
-
-		output_video_path = f'{output_video_directory}{input_video_filename}_annotated.{input_video_extension}'
-
-		return output_video_path
-
-	def __enter__(self):
-		return self
-
-	def __exit__(self, type, value, traceback):
-		self.video_capture.release()
-		self.video_writer.release()
