@@ -2,12 +2,40 @@ import mediapipe as mp
 import numpy as np
 import cv2
 
+from numpy import array, average, sort
+from pose_estimator import CameraIntrinsics, PoseEstimator
+
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
+KATCHET_BOX_TOP_L = [1., .0, -.1]
+KATCHET_BOX_TOP_R = [1., 1., -.1]
+KATCHET_BOX_BOT_L = [.0, .0, .0]
+KATCHET_BOX_BOT_R = [.0, 1., .0]
+
+def pick_katchet_board_corner(kpt: np.ndarray[(2,), np.float64]):
+	x = kpt[0]
+	y = kpt[1]
+
+	if y < 0:
+		return KATCHET_BOX_TOP_L if x < 0 else KATCHET_BOX_TOP_R
+	else:
+		return KATCHET_BOX_BOT_L if x < 0 else KATCHET_BOX_BOT_R
+
+def get_katchet_board_pts(katchet_board_poly: np.ndarray[(4, 2), np.float64]):
+	katchet_board_center = average(katchet_board_poly, axis=0)
+	katchet_board_deltas = katchet_board_poly - katchet_board_center
+
+	kpts3d = array([pick_katchet_board_corner(delta) for delta in katchet_board_deltas])
+	kpts2d = katchet_board_poly
+
+	return kpts3d.astype('float64'), kpts2d.astype('float64')
 
 class CatchingJudge():
-	def __init__(self, input_video_path):
+	__cam_pose_estimator: PoseEstimator
+	__cam_intrinsics: CameraIntrinsics
+
+	def __init__(self, input_video_path, cam_intrinsics: CameraIntrinsics):
 		self.video_capture = cv2.VideoCapture(input_video_path)
 
 		if not self.video_capture.isOpened():
@@ -153,6 +181,9 @@ class CatchingJudge():
 
 		# if no contours were found, return the original frame
 		if len(contour_lens) == 0:
+			# Detected no contours
+			mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
+			self.video_writer.write(mask)
 			return
 
 		katchet_face_len = contour_lens[0][0]
@@ -162,12 +193,11 @@ class CatchingJudge():
 		katchet_face_poly = cv2.approxPolyDP(
 			katchet_face, epsilon=epsilon, closed=True)
 
-		points = []
-		for point in katchet_face_poly:
-			points.append([point[0][0], point[0][1]])
-
-		points.sort()
-		bottom_left_point = points[0] if points[0][1] > points[1][1] else points[1]
+		if not len(katchet_face_poly) == 4:
+			# Failed to detect a quadrilateral
+			mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
+			self.video_writer.write(mask)
+			return
 
 		cv2.drawContours(
 			image=mask,
@@ -178,8 +208,13 @@ class CatchingJudge():
 			lineType=cv2.LINE_AA
 		)
 
-		cv2.circle(
-			mask, (bottom_left_point[0], bottom_left_point[1]), 10, (0, 0, 255), -1)
+		katchet_face_poly_pts = np.reshape(katchet_face_poly, (4, 2))
+		self.estimate_katchet_face(katchet_face_poly_pts)
+
+		for x in range(-2, 4):
+			for y in range(-2, 4):
+				self.draw_point(array([[x], [y], [.0]], dtype=np.float64), mask)
+
 		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
 
 	def process_frame(self, frame):
@@ -194,6 +229,29 @@ class CatchingJudge():
 		pose_detected = self.detect_pose(ball_detected)
 
 		self.video_writer.write(pose_detected)
+
+	def estimate_katchet_face(self, katchet_face):
+		inliers = np.zeros((4, 3), dtype=np.float64)
+
+		pts3d, pts2d = get_katchet_board_pts(katchet_face)
+
+		return self.__cam_pose_estimator.estimate(
+			points_3d=pts3d.astype('float64'),
+			points_2d=pts2d.astype('float64'),
+			iterations=500,
+			reprojection_err=2.0,
+			inliners=inliers,
+			confidence=0.95,
+		)
+
+	def draw_point(self, point: np.ndarray[(3, 1), np.float64], mask):
+		pt = self.__cam_pose_estimator.project(point).astype('int')
+		center = (pt[0], pt[1])
+		
+		cv2.circle(mask, center, 10, (0, 0, 255), -1)
+
+	def project_point(self, point: np.ndarray[(3, 1), np.float64]):
+		return self.__cam_pose_estimator.project(point)
 
 	@staticmethod
 	def generate_output_video_path(input_video_path):
