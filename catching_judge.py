@@ -5,31 +5,10 @@ import cv2
 from numpy import array, average, sort
 from pose_estimator import CameraIntrinsics, PoseEstimator
 
+from katchet_board import KatchetBoard
+
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
-
-KATCHET_BOX_TOP_L = [1., .0, -.1]
-KATCHET_BOX_TOP_R = [1., 1., -.1]
-KATCHET_BOX_BOT_L = [.0, .0, .0]
-KATCHET_BOX_BOT_R = [.0, 1., .0]
-
-def pick_katchet_board_corner(kpt: np.ndarray[(2,), np.float64]):
-	x = kpt[0]
-	y = kpt[1]
-
-	if y < 0:
-		return KATCHET_BOX_TOP_L if x < 0 else KATCHET_BOX_TOP_R
-	else:
-		return KATCHET_BOX_BOT_L if x < 0 else KATCHET_BOX_BOT_R
-
-def get_katchet_board_pts(katchet_board_poly: np.ndarray[(4, 2), np.float64]):
-	katchet_board_center = average(katchet_board_poly, axis=0)
-	katchet_board_deltas = katchet_board_poly - katchet_board_center
-
-	kpts3d = array([pick_katchet_board_corner(delta) for delta in katchet_board_deltas])
-	kpts2d = katchet_board_poly
-
-	return kpts3d.astype('float64'), kpts2d.astype('float64')
 
 class CatchingJudge():
 	__cam_pose_estimator: PoseEstimator
@@ -231,13 +210,13 @@ class CatchingJudge():
 		self.video_writer.write(pose_detected)
 
 	def estimate_katchet_face(self, katchet_face):
+		katchet_board = KatchetBoard.from_vertices_2d(katchet_face)
+
 		inliers = np.zeros((4, 3), dtype=np.float64)
 
-		pts3d, pts2d = get_katchet_board_pts(katchet_face)
-
 		return self.__cam_pose_estimator.estimate(
-			points_3d=pts3d.astype('float64'),
-			points_2d=pts2d.astype('float64'),
+			points_3d=katchet_board.get_vertices_3d(),
+			points_2d=katchet_board.get_vertices_2d(),
 			iterations=500,
 			reprojection_err=2.0,
 			inliners=inliers,
