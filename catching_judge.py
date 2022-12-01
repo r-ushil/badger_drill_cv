@@ -2,7 +2,7 @@ import mediapipe as mp
 import numpy as np
 import cv2
 
-from numpy import array, average, sort
+from numpy import array
 from pose_estimator import CameraIntrinsics, PoseEstimator
 
 from judge import Judge
@@ -173,12 +173,10 @@ class CatchingJudge(Judge):
 			lineType=cv2.LINE_AA
 		)
 
-		katchet_face_poly_pts = np.reshape(katchet_face_poly, (4, 2))
-		self.estimate_katchet_face(katchet_face_poly_pts)
+		katchet_face_pts = np.reshape(katchet_face_poly, (4, 2))
 
-		for x in range(-2, 4):
-			for y in range(-2, 4):
-				self.draw_point(array([[x], [y], [.0]], dtype=np.float64), mask)
+		self.__compute_camera_localisation_from_katchet(katchet_face_pts)
+		self.__render_ground_plane(mask)
 
 		mask = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
 		return mask
@@ -198,7 +196,7 @@ class CatchingJudge(Judge):
 
 		self.write_frame(output_frame)
 
-	def estimate_katchet_face(self, katchet_face):
+	def __compute_camera_localisation_from_katchet(self, katchet_face):
 		katchet_board = KatchetBoard.from_vertices_2d(katchet_face)
 
 		inliers = np.zeros((4, 3), dtype=np.float64)
@@ -212,11 +210,13 @@ class CatchingJudge(Judge):
 			confidence=0.95,
 		)
 
-	def draw_point(self, point: np.ndarray[(3, 1), np.float64], mask):
+	def __render_ground_plane(self, mask):
+		for x in range(-2, 4):
+			for y in range(-2, 4):
+				self.__draw_point(array([[x], [y], [.0]], dtype=np.float64), mask)
+
+	def __draw_point(self, point: np.ndarray[(3, 1), np.float64], mask):
 		pt = self.__cam_pose_estimator.project(point).astype('int')
 		center = (pt[0], pt[1])
 		
 		cv2.circle(mask, center, 10, (0, 0, 255), -1)
-
-	def project_point(self, point: np.ndarray[(3, 1), np.float64]):
-		return self.__cam_pose_estimator.project(point)
