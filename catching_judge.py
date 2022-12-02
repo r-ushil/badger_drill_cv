@@ -48,21 +48,34 @@ class CatchingJudge():
     
     def detect_ball(self, frame):
 
-        def find_bounce_point_timestamp(self):
-            print(self.ball_positions)
+        def find_bounce_point_frame(self):
             delta_x = abs(self.ball_positions[1][1][0] - self.ball_positions[0][1][0])
             delta_y = abs(self.ball_positions[1][1][1] - self.ball_positions[0][1][1])
+            if delta_y < 0:
+                return 1
             prev_angle = math.atan(delta_x/delta_y) 
             for f in range (2, len(self.ball_positions)):
-                delta_x = abs(self.ball_positions[f][1][0] - self.ball_positions[f-1][1][0])
-                delta_y = abs(self.ball_positions[f][1][1] - self.ball_positions[f-1][1][1])
+                delta_x = self.ball_positions[f][1][0] - self.ball_positions[f-1][1][0]
+                delta_y = self.ball_positions[f][1][1] - self.ball_positions[f-1][1][1]
                 angle = math.atan(delta_x/delta_y)
                 ratio = abs(angle/prev_angle)
-                if (ratio <= 1.1) & (ratio >= 0.9):
+                if delta_y > 0 & (ratio <= 1.1) & (ratio >= 0.9):
                     prev_angle = angle
                 else: 
-                    return f / self.fps
+                    return f
             return -1
+
+        def triangulate_bounce_point():
+            f = find_bounce_point_frame(self)
+            point_1 = self.ball_positions[f-2][1]
+            point_2 = self.ball_positions[f-1][1]
+            point_3 = self.ball_positions[f][1]
+            point_4 = self.ball_positions[f+1][1]
+            coeff_matrix = [[point_1[0] - point_2[0], point_4[0] - point_3[0]], [point_1[1] - point_2[1], point_4[1] - point_3[1]]]
+            lambda_mu = np.matmul(np.linalg.inv(coeff_matrix), [[point_3[0] - point_2[0]],[point_3[1] - point_2[1]]])
+            lambdaa = lambda_mu[0][0]
+            return (round(point_2[0] + (lambdaa * (point_1[0]-point_2[0]))), round(point_2[1] + (lambdaa * (point_1[1]-point_2[1]))))
+
 
 
         # convert to HSV
@@ -116,10 +129,15 @@ class CatchingJudge():
         if len(detected) > 0:
             self.ball_positions.append(detected[0])
         
-        if len(self.ball_positions) > 1: 
-            if find_bounce_point_timestamp(self) != -1:
+        print(len(self.ball_positions))
+        if len(self.ball_positions) > 2: 
+            f = find_bounce_point_frame(self) 
+            print(f)
+            if f != -1:
                 for (area, centre, radius) in self.ball_positions:
                     cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
+                if (f < len(self.ball_positions) - 1):
+                    cv2.circle(frame, triangulate_bounce_point(), 20, (0, 0, 255), cv2.FILLED)
                 return frame
         
         for (area, centre, radius) in self.ball_positions:
