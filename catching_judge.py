@@ -211,12 +211,12 @@ class CatchingJudge(Judge):
 		)
 
 	def __render_ground_plane(self, mask):
-		for x in range(-2, 4):
-			for y in range(-2, 4):
+		for x in range(-4, 6):
+			for y in range(-4, 6):
 				self.__draw_point(array([[x], [y], [.0]], dtype=np.float64), mask)
 
 	def __draw_point(self, point: np.ndarray[(3, 1), np.float64], mask):
-		pt = self.__cam_pose_estimator.project(point).astype('int')
+		pt = self.__cam_pose_estimator.project_3d_to_2d(point).astype('int')
 		center = (pt[0], pt[1])
 		
 		cv2.circle(mask, center, 10, (0, 0, 255), -1)

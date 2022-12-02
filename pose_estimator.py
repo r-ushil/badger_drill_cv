@@ -1,5 +1,7 @@
 from cv2 import solvePnPRansac, Rodrigues
+from calib3d import Calib, Point2D, Point3D
 from numpy import append, array, concatenate, float64, matmul, ndarray, reshape, zeros
+from typing import Optional
 
 class CameraIntrinsics:
     __focal_len: float
@@ -30,14 +32,32 @@ class CameraIntrinsics:
 
         return cam_mat
 
+    def image_dims(self) -> tuple[float, float]:
+        return self.__image_w, self.__image_h
+
+class NotLocalisedError(Exception): pass
+
+def assert_localised(func):
+    def func_assert_localised(self: "PoseEstimator", *args, **kwargs):
+        if self.is_localised():
+            return func(self, *args, **kwargs)
+        else:
+            raise NotLocalisedError("Call .localise() to localise camera first!")
+    return func_assert_localised
+
 class PoseEstimator:
+    __cam_calib: Optional[Calib]
+    __cam_intrinsics: CameraIntrinsics
     __cam_mat: ndarray[(3, 3), float64]
     __rot_tra_mat: ndarray[(3, 4), float64]
     __rot_tra_mat_inv: ndarray[(3, 4), float64]
 
     def __init__(self, cam_intrinsics: CameraIntrinsics):
+        self.__cam_intrinsics = cam_intrinsics
         self.__cam_mat = cam_intrinsics.camera_matrix()
         self.__rot_tra_mat = zeros((3, 4), dtype=float64)
+
+        self.__cam_calib = None
 
     def estimate(
         self,
@@ -79,10 +99,17 @@ class PoseEstimator:
         self.__rot_tra_mat = affine
         self.__rot_tra_mat_inv = affine_inv
 
+        image_w, image_h = self.__cam_intrinsics.image_dims()
+        self.__cam_calib = Calib(width=image_w, height=image_h, T=tra_vec, R=rot_mat, K=self.__cam_mat)
+
         return self.__rot_tra_mat
 
-    def project(self, point: ndarray((3, 1), dtype=float64)) -> ndarray((2, 1), dtype=float64):
-        point_affn = reshape(append(point, [1.0]), (4, 1))
+    def is_localised(self) -> bool:
+        return self.__cam_calib is not None
+
+    @assert_localised
+    def project_3d_to_2d(self, point_3d: ndarray[(3, 1), float64]) -> ndarray[(2, 1), float64]:
+        point_affn = reshape(append(point_3d, [1.0]), (4, 1))
         point_trns = matmul(matmul(self.__cam_mat, self.__rot_tra_mat), point_affn)
         
         point_norm = array([
@@ -91,6 +118,27 @@ class PoseEstimator:
         ])
 
         return reshape(point_norm, (2,))
+
+    @assert_localised
+    def project_2d_to_3d(
+        self,
+        point_2d: ndarray[(2, 1), float64],
+        X: Optional[float] = None,
+        Y: Optional[float] = None,
+        Z: Optional[float] = None,
+    ) -> ndarray[(3, 1), float64]:
+        coordinate_count = 0
+
+        if X is not None: coordinate_count += 1
+        if Y is not None: coordinate_count += 1
+        if Z is not None: coordinate_count += 1
+
+        if coordinate_count != 1:
+            raise Exception("Specify one of X, Y or Z only.")
+
+        point_3d = self.__cam_calib.project_2D_to_3D(Point2D(point_2d), X=X, Y=Y, Z=Z)
+
+        return point_3d.reshape((3, 1)).astype('float64')
 
     def construct_affine(rot_mat: ndarray[(3, 3), float64], tra_vec: ndarray[(3, 1)]) -> ndarray[(3, 4), float64]:
         return concatenate((rot_mat, tra_vec), axis=1, dtype=float64)
