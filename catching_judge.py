@@ -2,7 +2,7 @@ import mediapipe as mp
 import numpy as np
 import cv2
 
-from numpy import array
+from numpy import array, around
 from pose_estimator import CameraIntrinsics, PoseEstimator
 from typing import Optional
 
@@ -42,7 +42,7 @@ class KatchetDrillFrameContext():
 		self.__human_pose_estimator = None
 		self.__human_landmarks = None
 		self.__katchet_face_poly = None
-		self.__ball_positions = []
+		self.__left_heel = None
 
 	def frame_hsv(self):
 		return cv2.cvtColor(self.__frame, cv2.COLOR_BGR2HSV)
@@ -82,6 +82,12 @@ class KatchetDrillFrameContext():
 
 	def get_katchet_face_poly(self) -> cv2.Mat:
 		return self.__katchet_face_poly
+
+	def register_left_heel(self, left_heel):
+		self.__left_heel = left_heel
+
+	def get_left_heel(self):
+		return self.__left_heel
 
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
@@ -227,6 +233,25 @@ class CatchingJudge(Judge):
 
 		frame_context.register_cam_pose_estimator(cam_pose_estimator)
 
+	def localise_human_feet(self, frame_context: KatchetDrillFrameContext):
+		cam_pose_estimator = frame_context.get_cam_pose_estimator()
+		pose_landmarks = frame_context.get_human_landmarks()
+
+		if cam_pose_estimator is None or pose_landmarks is None:
+			return
+
+		left_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
+
+		vid_w, vid_h = self.get_video_dims()
+		sx = left_heel.x * vid_w
+		sy = left_heel.y * vid_h
+
+		left_heel_screen_coordinates = array([sx, sy])
+
+		left_heel_world = cam_pose_estimator.project_2d_to_3d(left_heel_screen_coordinates, Z=0)
+
+		frame_context.register_left_heel(left_heel_world)
+
 	def process_frame(self, context: KatchetDrillContext, frame):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
@@ -240,6 +265,8 @@ class CatchingJudge(Judge):
 		# run pose estimation on frame
 		self.detect_pose(frame_context)
 
+		self.localise_human_feet(frame_context)
+
 		output_frame = self.generate_output_frame(frame_context)
 
 		self.write_frame(output_frame)
@@ -248,10 +275,13 @@ class CatchingJudge(Judge):
 		drill_context = frame_context.drill_context()
 
 		frame = frame_context.frame_bgr()
+
+		ball_positions = drill_context.get_ball_positions()
+
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
 		katchet_face_poly = frame_context.get_katchet_face_poly()
-		ball_positions = drill_context.get_ball_positions()
 		human_landmarks = frame_context.get_human_landmarks()
+		left_heel = frame_context.get_left_heel()
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
@@ -271,6 +301,9 @@ class CatchingJudge(Judge):
 
 		if human_landmarks is not None:
 			mp_drawing.draw_landmarks(frame, human_landmarks, mp_pose.POSE_CONNECTIONS)
+
+		if left_heel is not None:
+			CatchingJudge.__label_point(cam_pose_estimator, left_heel, frame, "Left Heel")
 		
 		return frame
 
@@ -301,3 +334,21 @@ class CatchingJudge(Judge):
 		center = (pt[0], pt[1])
 		
 		cv2.circle(mask, center, 10, (0, 0, 255), -1)
+
+	@staticmethod
+	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str):
+		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
+
+		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')
+		sx, sy = point_2d[0], point_2d[1]
+
+		cv2.circle(mask, (sx, sy), 10, (255, 0, 0), -1)
+		cv2.putText(
+			mask,
+			f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
+			fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+			fontScale=0.5,
+			color=(255, 255, 255),
+			thickness=2,
+			lineType=cv2.LINE_AA,
+		)
