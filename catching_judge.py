@@ -201,7 +201,7 @@ class CatchingJudge(Judge):
 
 		inliers = np.zeros((4, 3), dtype=np.float64)
 
-		return self.__cam_pose_estimator.estimate(
+		return self.__cam_pose_estimator.localise_camera(
 			points_3d=katchet_board.get_vertices_3d(),
 			points_2d=katchet_board.get_vertices_2d(),
 			iterations=500,
