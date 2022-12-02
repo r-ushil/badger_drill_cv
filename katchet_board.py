@@ -1,7 +1,7 @@
 from numpy import array, average, float64, ndarray
 
-KATCHET_BOX_TOP_L = [1., .0, -.1]
-KATCHET_BOX_TOP_R = [1., 1., -.1]
+KATCHET_BOX_TOP_L = [1., .0, -.02]
+KATCHET_BOX_TOP_R = [1., 1., -.02]
 KATCHET_BOX_BOT_L = [.0, .0, .0]
 KATCHET_BOX_BOT_R = [.0, 1., .0]
 
