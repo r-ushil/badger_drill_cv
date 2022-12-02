@@ -12,18 +12,31 @@ from katchet_board import KatchetBoard
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
+class KatchetDrillContext():
+	__ball_positions: list
+
+	def __init__(self) -> None:
+		self.__ball_positions = []
+
+	def register_ball_position(self, ball_position):
+		self.__ball_positions.append(ball_position)
+
+	def get_ball_positions(self) -> list:
+		return self.__ball_positions
+
 class KatchetDrillFrameContext():
 	__frame: cv2.Mat
 	__cam_pose_estimator: Optional[PoseEstimator]
 	__human_pose_estimator: Optional[mp_pose.Pose]
 
 	__katchet_face_poly: cv2.Mat
-	__ball_positions: list
 
 	'''
 		:param frame must be BGR
 	'''
-	def __init__(self, frame):
+	def __init__(self, drill_context: KatchetDrillContext, frame):
+		self.__drill_context = drill_context
+
 		self.__frame = frame
 		self.__cam_pose_estimator = None
 		self.__human_pose_estimator = None
@@ -42,6 +55,9 @@ class KatchetDrillFrameContext():
 
 	def frame_bgr(self):
 		return self.__frame
+
+	def drill_context(self) -> KatchetDrillContext:
+		return self.__drill_context
 
 	def register_cam_pose_estimator(self, cam_pose_estimator: PoseEstimator):
 		self.__cam_pose_estimator = cam_pose_estimator
@@ -67,12 +83,6 @@ class KatchetDrillFrameContext():
 	def get_katchet_face_poly(self) -> cv2.Mat:
 		return self.__katchet_face_poly
 
-	def register_ball_position(self, ball_position):
-		self.__ball_positions.append(ball_position)
-
-	def get_ball_positions(self) -> list:
-		return self.__ball_positions
-
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
 	__cam_intrinsics: CameraIntrinsics
@@ -93,8 +103,10 @@ class CatchingJudge(Judge):
 		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
+		context = KatchetDrillContext()
+
 		for frame in self.get_frames():
-			self.process_frame(frame)
+			self.process_frame(context, frame)
 
 	def _resize(self, img):
 		return cv2.resize(img, (375, 750))
@@ -147,7 +159,8 @@ class CatchingJudge(Judge):
 		# draw the smallest circle
 		if len(detected) > 0:
 			[ball_position] = detected
-			frame_context.register_ball_position(ball_position)
+			drill_context = frame_context.drill_context()
+			drill_context.register_ball_position(ball_position)
 
 		
 	def detect_pose(self, frame_context: KatchetDrillFrameContext):
@@ -214,12 +227,12 @@ class CatchingJudge(Judge):
 
 		frame_context.register_cam_pose_estimator(cam_pose_estimator)
 
-	def process_frame(self, frame):
+	def process_frame(self, context: KatchetDrillContext, frame):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.flip(frame, -1)
 
-		frame_context = KatchetDrillFrameContext(frame)
+		frame_context = KatchetDrillFrameContext(context, frame)
 
 		self.katchet_board_detection(frame_context)
 		self.detect_ball(frame_context)
@@ -232,10 +245,12 @@ class CatchingJudge(Judge):
 		self.write_frame(output_frame)
 
 	def generate_output_frame(self, frame_context: KatchetDrillFrameContext) -> cv2.Mat:
+		drill_context = frame_context.drill_context()
+
 		frame = frame_context.frame_bgr()
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
 		katchet_face_poly = frame_context.get_katchet_face_poly()
-		ball_positions = frame_context.get_ball_positions()
+		ball_positions = drill_context.get_ball_positions()
 		human_landmarks = frame_context.get_human_landmarks()
 
 		if cam_pose_estimator is not None:
