@@ -53,6 +53,9 @@ class Judge():
 	def write_frame(self, frame):
 		self.video_writer.write(frame)
 
+	def get_video_dims(self) -> tuple[int, int]:
+		return self.frame_width, self.frame_height
+
 	def __enter__(self):
 		return self
 
