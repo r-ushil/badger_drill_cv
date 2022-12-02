@@ -1,6 +1,7 @@
 import mediapipe as mp
 import numpy as np
 import cv2
+import math
 
 from numpy import array
 from pose_estimator import CameraIntrinsics, PoseEstimator
@@ -38,6 +39,23 @@ class CatchingJudge(Judge):
 		return cv2.resize(img, (375, 750))
 
 	def detect_ball(self, frame):
+
+		def find_bounce_point_timestamp(self):
+			print(self.ball_positions)
+			delta_x = abs(self.ball_positions[1][1][0] - self.ball_positions[0][1][0])
+			delta_y = abs(self.ball_positions[1][1][1] - self.ball_positions[0][1][1])
+			prev_angle = math.atan(delta_x/delta_y) 
+			for f in range (2, len(self.ball_positions)):
+							delta_x = abs(self.ball_positions[f][1][0] - self.ball_positions[f-1][1][0])
+							delta_y = abs(self.ball_positions[f][1][1] - self.ball_positions[f-1][1][1])
+							angle = math.atan(delta_x/delta_y)
+							ratio = abs(angle/prev_angle)
+							if (ratio <= 1.1) & (ratio >= 0.9):
+											prev_angle = angle
+							else: 
+											return f / self.fps
+			return -1
+
 		# convert to HSV
 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -88,6 +106,12 @@ class CatchingJudge(Judge):
 		# draw the smallest circle
 		if len(detected) > 0:
 			self.ball_positions.append(detected[0])
+
+		if len(self.ball_positions) > 1: 
+				if find_bounce_point_timestamp(self) != -1:
+								for (area, centre, radius) in self.ball_positions:
+												cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
+								return frame
 
 		for (area, centre, radius) in self.ball_positions:
 			cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
