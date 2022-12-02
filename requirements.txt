@@ -1,3 +1,4 @@
+calib3d
 Flask==2.1.0
 google-cloud-storage
 gunicorn==20.1.0
