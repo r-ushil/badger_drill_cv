@@ -42,7 +42,7 @@ def assert_localised(func):
         if self.is_localised():
             return func(self, *args, **kwargs)
         else:
-            raise NotLocalisedError("Call .localise() to localise camera first!")
+            raise NotLocalisedError("Call .localise_camera() to localise camera first!")
     return func_assert_localised
 
 class PoseEstimator:
@@ -59,7 +59,7 @@ class PoseEstimator:
 
         self.__cam_calib = None
 
-    def estimate(
+    def localise_camera(
         self,
         points_3d: ndarray[(3, int), float64],
         points_2d: ndarray[(2, int), float64],
