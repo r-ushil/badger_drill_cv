@@ -7,7 +7,7 @@ from pose_estimator import CameraIntrinsics, PoseEstimator
 from typing import Optional
 
 from judge import Judge
-from katchet_board import KatchetBoard
+from katchet_board import KatchetBoard, KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -164,7 +164,7 @@ class CatchingJudge(Judge):
 
 		# draw the smallest circle
 		if len(detected) > 0:
-			[ball_position] = detected
+			ball_position = detected[0]
 			drill_context = frame_context.drill_context()
 			drill_context.register_ball_position(ball_position)
 
@@ -194,7 +194,7 @@ class CatchingJudge(Judge):
 
 		mask = cv2.inRange(frame,
 						   (h(0), s(30), v(80)),
-						   (h(30), s(100), v(100)))
+						   (h(40), s(100), v(100)))
 
 		contours, hierarchy = cv2.findContours(
 			image=mask,
@@ -304,6 +304,12 @@ class CatchingJudge(Judge):
 
 		if left_heel is not None:
 			CatchingJudge.__label_point(cam_pose_estimator, left_heel, frame, "Left Heel")
+
+		if cam_pose_estimator is not None:
+			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_L, frame, "KB:BL")
+			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_R, frame, "KB:BR")
+			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_TOP_L, frame, "KB:TL")
+			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_TOP_R, frame, "KB:TR")
 		
 		return frame
 
@@ -333,7 +339,7 @@ class CatchingJudge(Judge):
 		pt = pose_estimator.project_3d_to_2d(point).astype('int')
 		center = (pt[0], pt[1])
 		
-		cv2.circle(mask, center, 10, (0, 0, 255), -1)
+		cv2.circle(mask, center, 2, (255, 0, 0), -1)
 
 	@staticmethod
 	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str):
