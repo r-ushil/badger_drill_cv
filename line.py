@@ -14,8 +14,8 @@ class Line:
 	@staticmethod
 	def find_rotation_matrix(v1, v2):
 		# https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
-		assert v1.shape == (3, 1)
-		assert v2.shape == (3, 1)
+		assert v1.shape == (3, )
+		assert v2.shape == (3, )
 
 		v1norm = np.linalg.norm(v1)
 		v2norm = np.linalg.norm(v2)
@@ -23,8 +23,8 @@ class Line:
 		v1unit = v1 / v1norm
 		v2unit = v2 / v2norm
 
-		v = np.cross(v1unit, v2unit, axis=0)
-		c = np.dot(v1unit.reshape(3,), v2unit.reshape(3,))
+		v = np.cross(v1unit, v2unit)
+		c = np.dot(v1unit, v2unit)
 		I = np.identity(3)
 		s = np.linalg.norm(v)
 		k = v2norm / v1norm
