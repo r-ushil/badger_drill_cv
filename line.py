@@ -34,5 +34,10 @@ class Line:
 			[-v[1], v[0], 	0],
 		])
 
-		return k * (I + vx + np.dot(vx, vx) * ((1 - c) / np.square(s)))
+		R = k * (I + vx + np.dot(vx, vx) * ((1 - c) / np.square(s)))
+
+		assert np.linalg.norm(np.dot(R, v1) - v2) < 0.00001
+
+		return R
+
 	
