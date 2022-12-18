@@ -43,6 +43,7 @@ class KatchetDrillFrameContext():
 		self.__human_landmarks = None
 		self.__katchet_face_poly = None
 		self.__left_heel = None
+		self.__right_heel = None
 
 	def frame_hsv(self):
 		return cv2.cvtColor(self.__frame, cv2.COLOR_BGR2HSV)
@@ -88,6 +89,13 @@ class KatchetDrillFrameContext():
 
 	def get_left_heel(self):
 		return self.__left_heel
+
+	def register_right_heel(self, right_heel):
+		self.__right_heel = right_heel
+
+	def get_right_heel(self):
+		return self.__right_heel
+
 
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
@@ -241,16 +249,22 @@ class CatchingJudge(Judge):
 			return
 
 		left_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
+		right_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HEEL]
 
 		vid_w, vid_h = self.get_video_dims()
-		sx = left_heel.x * vid_w
-		sy = left_heel.y * vid_h
+		sx_left_foot = left_heel.x * vid_w
+		sy_left_foot = left_heel.y * vid_h
+		sx_right_foot = right_heel.x * vid_w
+		sy_right_foot = right_heel.y * vid_h
 
-		left_heel_screen_coordinates = array([sx, sy])
+		left_heel_screen_coordinates = array([sx_left_foot, sy_left_foot])
+		right_heel_screen_coordinates = array([sx_right_foot, sy_right_foot])
 
 		left_heel_world = cam_pose_estimator.project_2d_to_3d(left_heel_screen_coordinates, Z=0)
+		right_heel_world = cam_pose_estimator.project_2d_to_3d(right_heel_screen_coordinates, Z=0)
 
 		frame_context.register_left_heel(left_heel_world)
+		frame_context.register_right_heel(right_heel_world)
 
 	def process_frame(self, context: KatchetDrillContext, frame):
 		# convert colour format from BGR to RBG
@@ -282,6 +296,7 @@ class CatchingJudge(Judge):
 		katchet_face_poly = frame_context.get_katchet_face_poly()
 		human_landmarks = frame_context.get_human_landmarks()
 		left_heel = frame_context.get_left_heel()
+		right_heel = frame_context.get_right_heel()
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
@@ -304,6 +319,9 @@ class CatchingJudge(Judge):
 
 		if left_heel is not None:
 			CatchingJudge.__label_point(cam_pose_estimator, left_heel, frame, "Left Heel")
+
+		if right_heel is not None:
+			CatchingJudge.__label_point(cam_pose_estimator, right_heel, frame, "Right Heel")
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_L, frame, "KB:BL")
