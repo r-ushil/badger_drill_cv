@@ -91,6 +91,12 @@ class KatchetDrillFrameContext():
 	def get_human_landmarks(self):
 		return self.__human_landmarks
 
+	def register_human_world_landmarks(self, human_landmarks):
+		self.__human_world_landmarks = human_landmarks
+
+	def get_human_world_landmarks(self):
+		return self.__human_world_landmarks
+
 	def register_katchet_board_poly(self, katchet_face_poly):
 		self.__katchet_face_poly = katchet_face_poly
 
@@ -241,6 +247,7 @@ class CatchingJudge(Judge):
 		results = self.pose_estimator.process(frame_context.frame_rgb())
 
 		frame_context.register_human_landmarks(results.pose_landmarks)
+		frame_context.register_human_world_landmarks(results.pose_world_landmarks)
 		frame_context.register_human_pose_estimator(results)
 
 	def katchet_board_detection(self, frame_context: KatchetDrillFrameContext):
@@ -304,9 +311,10 @@ class CatchingJudge(Judge):
 
 	def localise_human_feet(self, frame_context: KatchetDrillFrameContext):
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
-		pose_landmarks = frame_context.get_human_landmarks()
+		human_landmarks = frame_context.get_human_landmarks()
+		human_world_landmarks = frame_context.get_human_world_landmarks()
 
-		if cam_pose_estimator is None or pose_landmarks is None:
+		if cam_pose_estimator is None or human_landmarks is None:
 			return
 
 		def scale_mp_coords(joint_position):
@@ -317,74 +325,77 @@ class CatchingJudge(Judge):
 				joint_position.z * vid_w,
 			)
 
-		def vectorize_mp_coords(sx, sy, sz):
+		def vectorize_mp_coords(x = None, y = None, z = None, landmark = None):
+			if landmark is not None:
+				x = landmark.x
+				y = landmark.y
+				z = landmark.z
 			return np.array([
-				sx,
+				x,
 				# mediapipe y-axis is equivalent to the world z-axis
-				sz,
-				sy,
-			])
+				y,
+				z,
+			]).reshape(3, 1)
 		
-		def generate_world_vector(p1_mp, p2_mp, p1_world):
-			p1_to_p2_mp = p2_mp - p1_mp
-			p1_to_p2_world = np.dot(R, p1_to_p2_mp).reshape((3, 1))
-			return p1_world + p1_to_p2_world
+		def generate_world_vector(joint_world_mp):
+			return cam_pose_estimator.transform_camera_to_world_axes(
+				(joint_world_mp - left_heel_world_mp) +
+				cam_pose_estimator.transform_world_to_camera_axes(left_heel_world)
+			)
+			# p1_to_p2_mp = p2_mp - left_heel_world_mp
+			# p1_to_p2_world = np.dot(R, p1_to_p2_mp).reshape((3, 1))
+			# return left_heel_world + p1_to_p2_world
 
-		left_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
-		right_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HEEL]
-		left_index = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_INDEX]
-		right_index = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_INDEX]
-		right_knee = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE]
-		left_knee = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_KNEE]
-		right_hip = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP]
-		left_hip = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP]
-		right_shoulder = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER]
-		left_shoulder = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER]
+		left_heel_screen = human_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
+		right_heel_screen = human_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HEEL]
 
-		sx_left_heel, sy_left_heel, sz_left_heel = scale_mp_coords(left_heel)
-		sx_right_heel, sy_right_heel, sz_right_heel = scale_mp_coords(right_heel)
-		s_left_index = scale_mp_coords(left_index)
-		s_right_index = scale_mp_coords(right_index)
-		s_left_knee = scale_mp_coords(left_knee)
-		s_right_knee = scale_mp_coords(right_knee)
-		s_left_hip = scale_mp_coords(left_hip)
-		s_right_hip = scale_mp_coords(right_hip)
-		s_left_shoulder = scale_mp_coords(left_shoulder)
-		s_right_shoulder = scale_mp_coords(right_shoulder)
+		left_heel_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
+		right_heel_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HEEL]
+		left_index_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.LEFT_INDEX]
+		right_index_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_INDEX]
+		right_knee_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE]
+		left_knee_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.LEFT_KNEE]
+		right_hip_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP]
+		left_hip_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP]
+		right_shoulder_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+		left_shoulder_world_landmark = human_world_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER]
 
-		left_heel_mp = vectorize_mp_coords(sx_left_heel, sy_left_heel, sz_left_heel)
-		right_heel_mp = vectorize_mp_coords(sx_right_heel, sy_right_heel, sz_right_heel)
-		left_index_mp = vectorize_mp_coords(*s_left_index)
-		right_index_mp = vectorize_mp_coords(*s_right_index)
-		right_knee_mp = vectorize_mp_coords(*s_right_knee)
-		left_knee_mp = vectorize_mp_coords(*s_left_knee)
-		right_hip_mp = vectorize_mp_coords(*s_right_hip)
-		left_hip_mp = vectorize_mp_coords(*s_left_hip)
-		right_shoulder_mp = vectorize_mp_coords(*s_right_shoulder)
-		left_shoulder_mp = vectorize_mp_coords(*s_left_shoulder)
+		sx_left_heel, sy_left_heel, _ = scale_mp_coords(left_heel_screen)
+		sx_right_heel, sy_right_heel, _ = scale_mp_coords(right_heel_screen)
+
+		left_heel_world_mp = vectorize_mp_coords(landmark=left_heel_world_landmark)
+		right_heel_world_mp = vectorize_mp_coords(landmark=right_heel_world_landmark)
+		left_index_world_mp = vectorize_mp_coords(landmark=left_index_world_landmark)
+		right_index_world_mp = vectorize_mp_coords(landmark=right_index_world_landmark)
+		right_knee_world_mp = vectorize_mp_coords(landmark=right_knee_world_landmark)
+		left_knee_world_mp = vectorize_mp_coords(landmark=left_knee_world_landmark)
+		right_hip_world_mp = vectorize_mp_coords(landmark=right_hip_world_landmark)
+		left_hip_world_mp = vectorize_mp_coords(landmark=left_hip_world_landmark)
+		right_shoulder_world_mp = vectorize_mp_coords(landmark=right_shoulder_world_landmark)
+		left_shoulder_world_mp = vectorize_mp_coords(landmark=left_shoulder_world_landmark)
 
 		left_heel_screen_coordinates = array([sx_left_heel, sy_left_heel])
 		right_heel_screen_coordinates = array([sx_right_heel, sy_right_heel])
 
 		left_heel_world = cam_pose_estimator.project_2d_to_3d(
-			left_heel_screen_coordinates, Z=0)
+			left_heel_screen_coordinates, Y=0)
 		right_heel_world = cam_pose_estimator.project_2d_to_3d(
-			right_heel_screen_coordinates, Z=0)
+			right_heel_screen_coordinates, Y=0)
 
-		left_to_right_heel_mp = right_heel_mp - left_heel_mp
-		left_to_right_heel_world = (
-			right_heel_world - left_heel_world).reshape((3,))
-		R = Line.find_rotation_matrix(
-			left_to_right_heel_mp, left_to_right_heel_world)
+		# left_to_right_heel_mp = right_heel_world_mp - left_heel_world_mp
+		# left_to_right_heel_world = (
+		# 	right_heel_world - left_heel_world).reshape((3,))
+		# R = Line.find_rotation_matrix(
+		# 	left_to_right_heel_mp, left_to_right_heel_world)
 		
-		right_index_world = generate_world_vector(left_heel_mp, right_index_mp, left_heel_world)
-		left_index_world = generate_world_vector(left_heel_mp, left_index_mp, left_heel_world)
-		right_knee_world = generate_world_vector(left_heel_mp, right_knee_mp, left_heel_world)
-		left_knee_world = generate_world_vector(left_heel_mp, left_knee_mp, left_heel_world)
-		right_hip_world = generate_world_vector(left_heel_mp, right_hip_mp, left_heel_world)
-		left_hip_world = generate_world_vector(left_heel_mp, left_hip_mp, left_heel_world)
-		right_shoulder_world = generate_world_vector(left_heel_mp, right_shoulder_mp, left_heel_world)
-		left_shoulder_world = generate_world_vector(left_heel_mp, left_shoulder_mp, left_heel_world)
+		right_index_world = generate_world_vector(right_index_world_mp)
+		left_index_world = generate_world_vector(left_index_world_mp)
+		right_knee_world = generate_world_vector(right_knee_world_mp)
+		left_knee_world = generate_world_vector(left_knee_world_mp)
+		right_hip_world = generate_world_vector(right_hip_world_mp)
+		left_hip_world = generate_world_vector(left_hip_world_mp)
+		right_shoulder_world = generate_world_vector(right_shoulder_world_mp)
+		left_shoulder_world = generate_world_vector(left_shoulder_world_mp)
 
 		frame_context.register_left_heel(left_heel_world)
 		frame_context.register_right_heel(right_heel_world)
@@ -459,35 +470,35 @@ class CatchingJudge(Judge):
 
 		if left_heel is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_heel, frame, "Left Heel")
+				cam_pose_estimator, left_heel, frame, "Left Heel", (255, 0, 0))
 
 		if right_heel is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_heel, frame, "Right Heel")
+				cam_pose_estimator, right_heel, frame, "Right Heel", (0, 0, 255))
 
 		if left_knee is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_knee, frame, "Left Knee")
+				cam_pose_estimator, left_knee, frame, "Left Knee", (255, 0, 0))
 
 		if right_knee is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_knee, frame, "Right Knee")
+				cam_pose_estimator, right_knee, frame, "Right Knee", (0, 0, 255))
 
 		if left_hip is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_hip, frame, "Left hip")
+				cam_pose_estimator, left_hip, frame, "Left hip", (255, 0, 0))
 
 		if right_hip is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_hip, frame, "Right hip")
+				cam_pose_estimator, right_hip, frame, "Right hip", (0, 0, 255))
 
 		if left_shoulder is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_shoulder, frame, "Left shoulder")
+				cam_pose_estimator, left_shoulder, frame, "Left shoulder", (255, 0, 0))
 
 		if right_shoulder is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_shoulder, frame, "Right shoulder")
+				cam_pose_estimator, right_shoulder, frame, "Right shoulder", (0, 0, 255))
 
 		# if right_index is not None:
 		#     CatchingJudge.__label_point(
@@ -527,9 +538,9 @@ class CatchingJudge(Judge):
 	@staticmethod
 	def __render_ground_plane(pose_estimator: PoseEstimator, mask):
 		for x in range(-4, 6):
-			for y in range(-4, 6):
+			for z in range(-4, 6):
 				CatchingJudge.__draw_point(pose_estimator, array(
-					[[x], [y], [.0]], dtype=np.float64), mask)
+					[[x], [.0], [z]], dtype=np.float64), mask)
 
 	@staticmethod
 	def __draw_point(pose_estimator: PoseEstimator, point: np.ndarray[(3, 1), np.float64], mask):
@@ -539,19 +550,19 @@ class CatchingJudge(Judge):
 		cv2.circle(mask, center, 2, (255, 0, 0), -1)
 
 	@staticmethod
-	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str):
+	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, colour=(255, 0, 0)):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
 
 		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')
 		sx, sy = point_2d[0], point_2d[1]
 
-		cv2.circle(mask, (sx, sy), 10, (255, 0, 0), -1)
-		# cv2.putText(
-		#     mask,
-		#     f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
-		#     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-		#     fontScale=0.5,
-		#     color=(255, 255, 255),
-		#     thickness=2,
-		#     lineType=cv2.LINE_AA,
-		# )
+		cv2.circle(mask, (sx, sy), 10, colour, -1)
+		cv2.putText(
+		    mask,
+		    f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
+		    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+		    fontScale=0.5,
+		    color=(255, 255, 255),
+		    thickness=2,
+		    lineType=cv2.LINE_AA,
+		)
