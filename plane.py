@@ -50,7 +50,7 @@ class Plane:
 		return points
 	
 	@staticmethod
-	def get_rotation_matrix_about_point(theta_rad, point):
+	def get_rotation_matrix_about_point(theta_rad, point, axis = "Z"):
 		assert point.shape == (3, )
 
 		translation_to_origin = np.array([
@@ -67,14 +67,25 @@ class Plane:
 			[0, 0, 0, 1		  ],
 		])
 
+		# TODO: Switch to use Y-axis as vertical when we migrate
 		c = np.cos(theta_rad)
 		s = np.sin(theta_rad)
-		rotation = np.array([
-			[c, -s, 0, 0],
-			[s, c,  0, 0],
-			[0, 0,  1, 0],
-			[0, 0,  0, 1],
-		])
+
+		rotation = None
+		if axis == "Z":
+			rotation = np.array([
+				[c, -s, 0, 0],
+				[s, c,  0, 0],
+				[0, 0,  1, 0],
+				[0, 0,  0, 1],
+			])
+		elif axis == "Y":
+			rotation = np.array([
+				[c,  0, s, 0],
+				[0,  1, 0, 0],
+				[-s, 0, c, 0],
+				[0,  0, 0, 1],
+			])
 
 		return translation_back @ (rotation @ translation_to_origin)
 
