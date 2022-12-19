@@ -1,9 +1,9 @@
 from numpy import array, average, float64, ndarray
 
-KATCHET_BOX_TOP_L = [.0, -.02, .4]
-KATCHET_BOX_TOP_R = [.6, -.02, .4]
+KATCHET_BOX_TOP_L = [.0, -.05, .45]
+KATCHET_BOX_TOP_R = [.58, -.05, .45]
 KATCHET_BOX_BOT_L = [.0, .0, .0]
-KATCHET_BOX_BOT_R = [.6, .0, .0]
+KATCHET_BOX_BOT_R = [.58, .0, .0]
 
 class KatchetBoard():
     __vertices_2d: ndarray[(4, 2), float64]

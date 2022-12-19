@@ -339,7 +339,7 @@ class CatchingJudge(Judge):
 		
 		def generate_world_vector(joint_world_mp):
 			return cam_pose_estimator.transform_camera_to_world_axes(
-				(joint_world_mp - left_heel_world_mp) +
+				1.5 * (joint_world_mp - left_heel_world_mp) +
 				cam_pose_estimator.transform_world_to_camera_axes(left_heel_world)
 			)
 			# p1_to_p2_mp = p2_mp - left_heel_world_mp
@@ -470,7 +470,7 @@ class CatchingJudge(Judge):
 
 		if left_heel is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_heel, frame, "Left Heel", (255, 0, 0))
+				cam_pose_estimator, left_heel, frame, "Left Heel", (255, 0, 0), False)
 
 		if right_heel is not None:
 			CatchingJudge.__label_point(
@@ -478,7 +478,7 @@ class CatchingJudge(Judge):
 
 		if left_knee is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_knee, frame, "Left Knee", (255, 0, 0))
+				cam_pose_estimator, left_knee, frame, "Left Knee", (255, 0, 0), False)
 
 		if right_knee is not None:
 			CatchingJudge.__label_point(
@@ -486,7 +486,7 @@ class CatchingJudge(Judge):
 
 		if left_hip is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_hip, frame, "Left hip", (255, 0, 0))
+				cam_pose_estimator, left_hip, frame, "Left hip", (255, 0, 0), False)
 
 		if right_hip is not None:
 			CatchingJudge.__label_point(
@@ -494,7 +494,7 @@ class CatchingJudge(Judge):
 
 		if left_shoulder is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_shoulder, frame, "Left shoulder", (255, 0, 0))
+				cam_pose_estimator, left_shoulder, frame, "Left shoulder", (255, 0, 0), False)
 
 		if right_shoulder is not None:
 			CatchingJudge.__label_point(
@@ -550,19 +550,20 @@ class CatchingJudge(Judge):
 		cv2.circle(mask, center, 2, (255, 0, 0), -1)
 
 	@staticmethod
-	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, colour=(255, 0, 0)):
+	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, colour=(255, 0, 0), show_label = True):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
 
 		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')
 		sx, sy = point_2d[0], point_2d[1]
 
 		cv2.circle(mask, (sx, sy), 10, colour, -1)
-		cv2.putText(
-		    mask,
-		    f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
-		    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-		    fontScale=0.5,
-		    color=(255, 255, 255),
-		    thickness=2,
-		    lineType=cv2.LINE_AA,
-		)
+		if show_label: 
+			cv2.putText(
+		    	mask,
+		    	f"({around(wx, 1)}, {around(wy, 1)}, {around(wz, 1)})", (sx, sy),
+		    	fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+		    	fontScale=0.5,
+		    	color=(255, 255, 255),
+		    	thickness=2,
+		    	lineType=cv2.LINE_AA,
+			)
