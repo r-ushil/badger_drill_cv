@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 
 from numpy import array, around
+from plane import Plane
 from pose_estimator import CameraIntrinsics, PoseEstimator
 from typing import Optional
 
@@ -44,6 +45,7 @@ class KatchetDrillFrameContext():
 		self.__katchet_face_poly = None
 		self.__left_heel = None
 		self.__right_heel = None
+		self.__trajectory_plane_points = None
 
 	def frame_hsv(self):
 		return cv2.cvtColor(self.__frame, cv2.COLOR_BGR2HSV)
@@ -96,6 +98,11 @@ class KatchetDrillFrameContext():
 	def get_right_heel(self):
 		return self.__right_heel
 
+	def register_trajectory_plane_points(self, trajectory_plane_points):
+		self.__trajectory_plane_points = trajectory_plane_points
+
+	def get_trajectory_plane_points(self):
+		return self.__trajectory_plane_points
 
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
@@ -263,6 +270,15 @@ class CatchingJudge(Judge):
 		left_heel_world = cam_pose_estimator.project_2d_to_3d(left_heel_screen_coordinates, Z=0)
 		right_heel_world = cam_pose_estimator.project_2d_to_3d(right_heel_screen_coordinates, Z=0)
 
+		trajectory_plane = Plane(
+			np.array([0, 0.5, 0]),
+			np.array(left_heel_world.reshape(3,)),
+			np.array([0, 0.5, -1])
+		)
+
+		trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
+
+		frame_context.register_trajectory_plane_points(trajectory_plane_points)
 		frame_context.register_left_heel(left_heel_world)
 		frame_context.register_right_heel(right_heel_world)
 
@@ -297,6 +313,7 @@ class CatchingJudge(Judge):
 		human_landmarks = frame_context.get_human_landmarks()
 		left_heel = frame_context.get_left_heel()
 		right_heel = frame_context.get_right_heel()
+		trajectory_plane_points = frame_context.get_trajectory_plane_points()
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
@@ -322,6 +339,12 @@ class CatchingJudge(Judge):
 
 		if right_heel is not None:
 			CatchingJudge.__label_point(cam_pose_estimator, right_heel, frame, "Right Heel")
+
+		if trajectory_plane_points is not None:
+			for p in trajectory_plane_points:
+				(x, y, z) = p
+				if z <= 0 and z > -0.8 and x >= -2:
+					CatchingJudge.__label_point(cam_pose_estimator, p.reshape((3, 1)), frame, "", False)
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_L, frame, "KB:BL")
@@ -360,19 +383,20 @@ class CatchingJudge(Judge):
 		cv2.circle(mask, center, 2, (255, 0, 0), -1)
 
 	@staticmethod
-	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str):
+	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, show_label = True):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
 
 		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')
 		sx, sy = point_2d[0], point_2d[1]
 
 		cv2.circle(mask, (sx, sy), 10, (255, 0, 0), -1)
-		cv2.putText(
-			mask,
-			f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
-			fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-			fontScale=0.5,
-			color=(255, 255, 255),
-			thickness=2,
-			lineType=cv2.LINE_AA,
-		)
+		if show_label:
+			cv2.putText(
+				mask,
+				f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
+				fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+				fontScale=0.5,
+				color=(255, 255, 255),
+				thickness=2,
+				lineType=cv2.LINE_AA,
+			)
