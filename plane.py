@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 
 class Plane:
 	def __init__(self, p1, p2, p3):
@@ -31,7 +32,6 @@ class Plane:
 	# Spaced by grid_spacing, containing grid_side_length^2 points.
 	def sample_grid_points(self, grid_side_length, grid_spacing=1):
 
-
 		# Ensure the grid side length is odd so it is centerable on self.p
 		if grid_side_length % 2 == 0: grid_side_length += 1
 
@@ -48,6 +48,36 @@ class Plane:
 				points.append(point)
 		
 		return points
+	
+	@staticmethod
+	def get_rotation_matrix_about_point(theta_rad, point):
+		assert point.shape == (3, )
+
+		translation_to_origin = np.array([
+			[1, 0, 0, -point[0]],
+			[0, 1, 0, -point[1]],
+			[0, 0, 1, -point[2]],
+			[0, 0, 0, 1		   ],
+		])
+
+		translation_back = np.array([
+			[1, 0, 0, point[0]],
+			[0, 1, 0, point[1]],
+			[0, 0, 1, point[2]],
+			[0, 0, 0, 1		  ],
+		])
+
+		c = np.cos(theta_rad)
+		s = np.sin(theta_rad)
+		rotation = np.array([
+			[c, -s, 0, 0],
+			[s, c,  0, 0],
+			[0, 0,  1, 0],
+			[0, 0,  0, 1],
+		])
+
+		return translation_back @ (rotation @ translation_to_origin)
+
 
 def main():
 	p1 = np.array([1, 2, 3])
@@ -57,7 +87,12 @@ def main():
 	plane = Plane(p1, p2, p3)
 
 	for p in plane.sample_grid_points(3, 1):
-		print(plane.intersects_with_point(p))
+		assert plane.intersects_with_point(p)
+	
+	R1 = Plane.get_rotation_matrix_about_point(7, np.array([1, 2, 3]))
+	R2 = Plane.get_rotation_matrix_about_point(-7, np.array([1, 2, 3]))
+
+	assert_array_almost_equal(np.identity(4), R1 @ R2)
 
 
 if __name__ == "__main__":
