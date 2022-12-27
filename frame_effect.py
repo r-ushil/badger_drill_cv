@@ -4,6 +4,7 @@ import numpy as np
 class FrameEffectType(Enum):
 	POINTS_MULTIPLE = 1
 	POINT_SINGLE = 2
+	KATCHET_FACE_POLY = 3
 
 class FrameEffect:
 	def __init__(self, 
@@ -13,7 +14,8 @@ class FrameEffect:
 		point_single=None, 
 		colour=None,
 		display_label=None,
-		show_label=None
+		show_label=None,
+		katchet_face_poly=None,
 		):
 		assert frame_effect_type is not None
 		assert primary_label is not None
@@ -43,6 +45,13 @@ class FrameEffect:
 				self.colour = colour
 				self.display_label = display_label
 				self.show_label = show_label
+
+			case FrameEffectType.KATCHET_FACE_POLY:
+				assert katchet_face_poly is not None
+				assert colour is not None
+
+				self.katchet_face_poly = katchet_face_poly
+				self.colour = colour
 	
 	@staticmethod
 	def generate_point_string(point):

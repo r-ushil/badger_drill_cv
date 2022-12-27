@@ -43,7 +43,6 @@ class KatchetDrillFrameContext():
 		self.__cam_pose_estimator = None
 		self.__human_pose_estimator = None
 		self.__human_landmarks = None
-		self.__katchet_face_poly = None
 		self.__frame_effects = []
 
 	def frame_hsv(self):
@@ -78,12 +77,6 @@ class KatchetDrillFrameContext():
 
 	def get_human_landmarks(self):
 		return self.__human_landmarks
-
-	def register_katchet_board_poly(self, katchet_face_poly):
-		self.__katchet_face_poly = katchet_face_poly
-
-	def get_katchet_face_poly(self) -> cv2.Mat:
-		return self.__katchet_face_poly
 
 	def add_frame_effect(self, frame_effect):
 		self.__frame_effects.append(frame_effect)
@@ -225,7 +218,12 @@ class CatchingJudge(Judge):
 		if not len(katchet_face_poly) == 4:
 			return
 
-		frame_context.register_katchet_board_poly(katchet_face)
+		frame_context.add_frame_effect(FrameEffect(
+			primary_label="Katchet Face Poly",
+			frame_effect_type=FrameEffectType.KATCHET_FACE_POLY,
+			katchet_face_poly=katchet_face,
+			colour=(0, 0, 0),
+		))
 
 		katchet_face_pts = np.reshape(katchet_face_poly, (4, 2))
 
@@ -341,19 +339,8 @@ class CatchingJudge(Judge):
 
 		ball_positions = drill_context.get_ball_positions()
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
-		katchet_face_poly = frame_context.get_katchet_face_poly()
 		human_landmarks = frame_context.get_human_landmarks()
 		frame_effects = frame_context.get_frame_effects()
-
-		if katchet_face_poly is not None:
-			cv2.drawContours(
-				image=frame,
-				contours=[katchet_face_poly],
-				contourIdx=0,
-				color=(0, 0, 255),
-				thickness=2,
-				lineType=cv2.LINE_AA
-			)
 
 		for (area, centre, radius) in ball_positions:
 			cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
@@ -363,7 +350,7 @@ class CatchingJudge(Judge):
 
 		if human_landmarks is not None:
 			mp_drawing.draw_landmarks(frame, human_landmarks, mp_pose.POSE_CONNECTIONS)
-
+		
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
 			primary_label="Katchet board points",
@@ -380,6 +367,16 @@ class CatchingJudge(Judge):
 							CatchingJudge.__label_point(cam_pose_estimator, point, frame, None, effect.show_label, colour=effect.colour)
 					case FrameEffectType.POINT_SINGLE:
 						CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label, colour=effect.colour)
+					case FrameEffectType.KATCHET_FACE_POLY:
+						cv2.drawContours(
+							image=frame,
+							contours=[effect.katchet_face_poly],
+							contourIdx=0,
+							color=effect.colour,
+							thickness=2,
+							lineType=cv2.LINE_AA
+						)
+
 		
 		return frame
 
