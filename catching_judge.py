@@ -44,7 +44,6 @@ class KatchetDrillFrameContext():
 		self.__human_pose_estimator = None
 		self.__human_landmarks = None
 		self.__katchet_face_poly = None
-		self.__trajectory_plane_points = None
 		self.__frame_effects = []
 
 	def frame_hsv(self):
@@ -85,12 +84,6 @@ class KatchetDrillFrameContext():
 
 	def get_katchet_face_poly(self) -> cv2.Mat:
 		return self.__katchet_face_poly
-
-	def register_trajectory_plane_points(self, trajectory_plane_points):
-		self.__trajectory_plane_points = trajectory_plane_points
-
-	def get_trajectory_plane_points(self):
-		return self.__trajectory_plane_points
 
 	def add_frame_effect(self, frame_effect):
 		self.__frame_effects.append(frame_effect)
@@ -280,9 +273,21 @@ class CatchingJudge(Judge):
 			circle_points.append(np.delete(current_point, -1))
 			current_point = point_rotation_matrix @ current_point 
 			
-
 		trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
-		frame_context.register_trajectory_plane_points(trajectory_plane_points)
+
+		def trajectory_plane_points_predicate(point):
+			(x, _, z) = point
+			return z <= 0 and z > -0.8 and x >= -2
+
+		trajectory_plane_points = list(filter(trajectory_plane_points_predicate, trajectory_plane_points))
+
+		frame_context.add_frame_effect(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+			primary_label="Trajectory plane points",
+			points_multiple=trajectory_plane_points,
+			colour=(0, 0, 255),
+			show_label=False
+		))
 
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINT_SINGLE,
@@ -306,7 +311,8 @@ class CatchingJudge(Judge):
 			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
 			primary_label="Circle points",
 			points_multiple=circle_points,
-			colour=(0, 255, 0)
+			colour=(0, 255, 0),
+			show_label=False
 		))
 
 	def process_frame(self, context: KatchetDrillContext, frame):
@@ -334,15 +340,10 @@ class CatchingJudge(Judge):
 		frame = frame_context.frame_bgr()
 
 		ball_positions = drill_context.get_ball_positions()
-
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
 		katchet_face_poly = frame_context.get_katchet_face_poly()
 		human_landmarks = frame_context.get_human_landmarks()
-		trajectory_plane_points = frame_context.get_trajectory_plane_points()
 		frame_effects = frame_context.get_frame_effects()
-
-		if cam_pose_estimator is not None:
-			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
 
 		if katchet_face_poly is not None:
 			cv2.drawContours(
@@ -357,29 +358,28 @@ class CatchingJudge(Judge):
 		for (area, centre, radius) in ball_positions:
 			cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
 
+		if cam_pose_estimator is not None:
+			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
+
 		if human_landmarks is not None:
 			mp_drawing.draw_landmarks(frame, human_landmarks, mp_pose.POSE_CONNECTIONS)
 
-		for effect in frame_effects:
-			match effect.frame_effect_type:
-				case FrameEffectType.POINTS_MULTIPLE:
-					for point in effect.points_multiple:
-						CatchingJudge.__label_point(cam_pose_estimator, point, frame, "", show_label=False, colour=effect.colour)
-				case FrameEffectType.POINT_SINGLE:
-					CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label, colour=effect.colour)
-
-
-		if trajectory_plane_points is not None:
-			for p in trajectory_plane_points:
-				(x, y, z) = p
-				if z <= 0 and z > -0.8 and x >= -2:
-					CatchingJudge.__label_point(cam_pose_estimator, p.reshape((3, 1)), frame, "", False)
+		frame_context.add_frame_effect(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+			primary_label="Katchet board points",
+			points_multiple=np.array([KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R]),
+			colour=(0, 0, 255),
+			show_label=True
+		))
 
 		if cam_pose_estimator is not None:
-			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_L, frame, "KB:BL")
-			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_R, frame, "KB:BR")
-			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_TOP_L, frame, "KB:TL")
-			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_TOP_R, frame, "KB:TR")
+			for effect in frame_effects:
+				match effect.frame_effect_type:
+					case FrameEffectType.POINTS_MULTIPLE:
+						for point in effect.points_multiple:
+							CatchingJudge.__label_point(cam_pose_estimator, point, frame, None, effect.show_label, colour=effect.colour)
+					case FrameEffectType.POINT_SINGLE:
+						CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label, colour=effect.colour)
 		
 		return frame
 
@@ -422,7 +422,7 @@ class CatchingJudge(Judge):
 		if show_label:
 			cv2.putText(
 				mask,
-				label,
+				label if label is not None else FrameEffect.generate_point_string(point_3d),
 				(sx, sy),
 				fontFace=cv2.FONT_HERSHEY_SIMPLEX,
 				fontScale=0.5,

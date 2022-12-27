@@ -24,16 +24,20 @@ class FrameEffect:
 			case FrameEffectType.POINTS_MULTIPLE:
 				assert points_multiple is not None
 				assert colour is not None
+				assert show_label is not None
 
 				self.points_multiple = points_multiple
 				self.colour = colour
+				self.show_label = show_label
 
 			case FrameEffectType.POINT_SINGLE:
 				assert point_single is not None
 				assert point_single.shape == (3, 1)
 				assert colour is not None
-				assert display_label is not None
 				assert show_label is not None
+
+				if show_label and display_label is None:
+					display_label = FrameEffect.generate_point_string(point_single)
 
 				self.point_single = point_single
 				self.colour = colour
