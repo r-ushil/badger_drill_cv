@@ -46,6 +46,7 @@ class KatchetDrillFrameContext():
 		self.__left_heel = None
 		self.__right_heel = None
 		self.__trajectory_plane_points = None
+		self.__circle_points = None
 
 	def frame_hsv(self):
 		return cv2.cvtColor(self.__frame, cv2.COLOR_BGR2HSV)
@@ -103,6 +104,12 @@ class KatchetDrillFrameContext():
 
 	def get_trajectory_plane_points(self):
 		return self.__trajectory_plane_points
+
+	def register_circle_points(self, circle_points):
+		self.__circle_points = circle_points
+
+	def get_circle_points(self):
+		return self.__circle_points
 
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
@@ -276,11 +283,22 @@ class CatchingJudge(Judge):
 			np.array([0, 0.5, -1])
 		)
 
+		circle_initial_point = np.array([2, 0, 0])
+		point_rotation_matrix = \
+			Plane.get_rotation_matrix_about_point(np.pi / 4, np.array([0, 0, 0]), axis="Z")
+
+		circle_points = []
+		current_point = np.append(circle_initial_point, 1)
+		for x in range(8):
+			circle_points.append(np.delete(current_point, -1))
+			current_point = point_rotation_matrix @ current_point 
+			
 		trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
 
 		frame_context.register_trajectory_plane_points(trajectory_plane_points)
 		frame_context.register_left_heel(left_heel_world)
 		frame_context.register_right_heel(right_heel_world)
+		frame_context.register_circle_points(circle_points)
 
 	def process_frame(self, context: KatchetDrillContext, frame):
 		# convert colour format from BGR to RBG
@@ -314,6 +332,7 @@ class CatchingJudge(Judge):
 		left_heel = frame_context.get_left_heel()
 		right_heel = frame_context.get_right_heel()
 		trajectory_plane_points = frame_context.get_trajectory_plane_points()
+		circle_points = frame_context.get_circle_points()
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
@@ -345,6 +364,10 @@ class CatchingJudge(Judge):
 				(x, y, z) = p
 				if z <= 0 and z > -0.8 and x >= -2:
 					CatchingJudge.__label_point(cam_pose_estimator, p.reshape((3, 1)), frame, "", False)
+
+		if circle_points is not None:
+			for p in circle_points:
+				CatchingJudge.__label_point(cam_pose_estimator, p.reshape((3, 1)), frame, "", False)
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__label_point(cam_pose_estimator, KATCHET_BOX_BOT_L, frame, "KB:BL")
