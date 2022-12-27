@@ -284,10 +284,6 @@ class CatchingJudge(Judge):
 		trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
 		frame_context.register_trajectory_plane_points(trajectory_plane_points)
 
-		# TODO: Make take colour into account
-		# TODO: Make optionally print label
-		# TODO: Add mandatory searchable label, optional display label
-
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINT_SINGLE,
 			point_single=left_heel_world,
@@ -368,9 +364,9 @@ class CatchingJudge(Judge):
 			match effect.frame_effect_type:
 				case FrameEffectType.POINTS_MULTIPLE:
 					for point in effect.points_multiple:
-						CatchingJudge.__label_point(cam_pose_estimator, point, frame, "")
+						CatchingJudge.__label_point(cam_pose_estimator, point, frame, "", show_label=False, colour=effect.colour)
 				case FrameEffectType.POINT_SINGLE:
-					CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label)
+					CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label, colour=effect.colour)
 
 
 		if trajectory_plane_points is not None:
@@ -416,13 +412,13 @@ class CatchingJudge(Judge):
 		cv2.circle(mask, center, 2, (255, 0, 0), -1)
 
 	@staticmethod
-	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, show_label = True):
+	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, show_label = True, colour = (255, 0, 0)):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
 
 		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')
 		sx, sy = point_2d[0], point_2d[1]
 
-		cv2.circle(mask, (sx, sy), 10, (255, 0, 0), -1)
+		cv2.circle(mask, (sx, sy), 10, colour, -1)
 		if show_label:
 			cv2.putText(
 				mask,
