@@ -287,10 +287,12 @@ class CatchingJudge(Judge):
 		# TODO: Make take colour into account
 		# TODO: Make optionally print label
 		# TODO: Add mandatory searchable label, optional display label
+
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINT_SINGLE,
 			point_single=left_heel_world,
-			label="Left Heel",
+			primary_label="Left Heel",
+			display_label=f"({around(left_heel_world[0], 2)}, {around(left_heel_world[1], 2)}, {around(left_heel_world[2], 2)})",
 			show_label=True,
 			colour=(255, 0, 0)
 		))
@@ -298,14 +300,15 @@ class CatchingJudge(Judge):
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINT_SINGLE,
 			point_single=right_heel_world,
-			label="Right Heel",
+			primary_label="Right Heel",
+			display_label=f"({around(right_heel_world[0], 2)}, {around(right_heel_world[1], 2)}, {around(right_heel_world[2], 2)})",
 			show_label=True,
 			colour=(255, 0, 0)
 		))
 
-
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+			primary_label="Circle points",
 			points_multiple=circle_points,
 			colour=(0, 255, 0)
 		))
@@ -367,7 +370,7 @@ class CatchingJudge(Judge):
 					for point in effect.points_multiple:
 						CatchingJudge.__label_point(cam_pose_estimator, point, frame, "")
 				case FrameEffectType.POINT_SINGLE:
-					CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.label)
+					CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label)
 
 
 		if trajectory_plane_points is not None:
@@ -423,7 +426,8 @@ class CatchingJudge(Judge):
 		if show_label:
 			cv2.putText(
 				mask,
-				f"({around(wx, 2)}, {around(wy, 2)}, {wz})", (sx, sy),
+				label,
+				(sx, sy),
 				fontFace=cv2.FONT_HERSHEY_SIMPLEX,
 				fontScale=0.5,
 				color=(255, 255, 255),
