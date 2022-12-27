@@ -49,6 +49,9 @@ class Plane:
 		
 		return points
 	
+	def get_angle_between_axis(self, axis = "X", zero_axis = "Z"):
+		pass
+
 	@staticmethod
 	def get_rotation_matrix_about_point(theta_rad, point, axis = "Z"):
 		assert point.shape == (3, )
@@ -100,10 +103,12 @@ def main():
 	for p in plane.sample_grid_points(3, 1):
 		assert plane.intersects_with_point(p)
 	
-	R1 = Plane.get_rotation_matrix_about_point(7, np.array([1, 2, 3]))
-	R2 = Plane.get_rotation_matrix_about_point(-7, np.array([1, 2, 3]))
+	R1 = Plane.get_rotation_matrix_about_point(7, np.array([1, 2, 3]), "Y")
+	R2 = Plane.get_rotation_matrix_about_point(-7, np.array([1, 2, 3]), "Y")
+	R3 = Plane.get_rotation_matrix_about_point(4, np.array([4, 5, 6]), "Z")
+	R4 = Plane.get_rotation_matrix_about_point(-4, np.array([4, 5, 6]), "Z")
 
-	assert_array_almost_equal(np.identity(4), R1 @ R2)
+	assert_array_almost_equal(np.identity(4), R4 @ (R3 @ (R2 @ R1)))
 
 
 if __name__ == "__main__":
