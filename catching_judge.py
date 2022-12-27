@@ -292,7 +292,7 @@ class CatchingJudge(Judge):
 			frame_effect_type=FrameEffectType.POINT_SINGLE,
 			point_single=left_heel_world,
 			primary_label="Left Heel",
-			display_label=f"({around(left_heel_world[0], 2)}, {around(left_heel_world[1], 2)}, {around(left_heel_world[2], 2)})",
+			display_label=FrameEffect.generate_point_string(left_heel_world),
 			show_label=True,
 			colour=(255, 0, 0)
 		))
@@ -301,7 +301,7 @@ class CatchingJudge(Judge):
 			frame_effect_type=FrameEffectType.POINT_SINGLE,
 			point_single=right_heel_world,
 			primary_label="Right Heel",
-			display_label=f"({around(right_heel_world[0], 2)}, {around(right_heel_world[1], 2)}, {around(right_heel_world[2], 2)})",
+			display_label=FrameEffect.generate_point_string(right_heel_world),
 			show_label=True,
 			colour=(255, 0, 0)
 		))

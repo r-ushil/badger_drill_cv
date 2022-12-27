@@ -39,5 +39,19 @@ class FrameEffect:
 				self.colour = colour
 				self.display_label = display_label
 				self.show_label = show_label
+	
+	@staticmethod
+	def generate_point_string(point):
+		assert point.shape == (3, ) or point.shape == (3, 1)
+
+		if point.shape == (3, 1):
+			point = point.reshape((3, ))
+
+		wx = point[0]
+		wy = point[1]
+		wz = point[2]
+		
+		return f"({np.around(wx, 2)}, {np.around(wy, 2)}, {np.around(wz, 2)})"
+
 
 
