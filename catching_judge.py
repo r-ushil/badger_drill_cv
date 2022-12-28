@@ -40,9 +40,6 @@ class CatchingJudge(Judge):
 		
 		self.write_video(drill_context, frame_contexts)
 
-	def _resize(self, img):
-		return cv2.resize(img, (375, 750))
-
 	def detect_ball(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext):
 		frame = frame_context.frame_hsv()
 
