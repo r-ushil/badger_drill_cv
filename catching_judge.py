@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import mediapipe as mp
 import cv2
@@ -35,10 +36,13 @@ class CatchingJudge(Judge):
 		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
-		context = CatchingDrillContext()
+		drill_context = CatchingDrillContext()
+		frame_contexts = []
 
 		for frame in self.get_frames():
-			self.process_frame(context, frame)
+			frame_contexts.append(self.process_frame(drill_context, frame))
+		
+		self.write_video(frame_contexts)
 
 	def _resize(self, img):
 		return cv2.resize(img, (375, 750))
@@ -244,24 +248,23 @@ class CatchingJudge(Judge):
 			show_label=False
 		))
 
-	def process_frame(self, context: CatchingDrillContext, frame):
+	def process_frame(self, drill_context: CatchingDrillContext, frame):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.flip(frame, -1)
-
-		frame_context = CatchingDrillFrameContext(context, frame)
+		frame_context = CatchingDrillFrameContext(drill_context, frame)
 
 		self.katchet_board_detection(frame_context)
 		self.detect_ball(frame_context)
-
-		# run pose estimation on frame
 		self.detect_pose(frame_context)
-
 		self.localise_human_feet(frame_context)
 
-		output_frame = self.generate_output_frame(frame_context)
+		return frame_context
 
-		self.write_frame(output_frame)
+	def write_video(self, frame_contexts: List[CatchingDrillFrameContext]):
+		for frame_context in frame_contexts:
+			output_frame = self.generate_output_frame(frame_context)
+			self.write_frame(output_frame)
 
 	def generate_output_frame(self, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
 		drill_context = frame_context.drill_context()
