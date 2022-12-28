@@ -8,7 +8,7 @@ from plane import Plane
 from pose_estimator import CameraIntrinsics, PoseEstimator
 
 from judge import Judge
-from katchet_board import KatchetBoard, KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
+from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from frame_effect import FrameEffectType, FrameEffect
 from catching_drill_context import CatchingDrillContext
 from catching_drill_frame_context import CatchingDrillFrameContext
@@ -152,7 +152,7 @@ class CatchingJudge(Judge):
 
 		katchet_face_pts = np.reshape(katchet_face_poly, (4, 2))
 
-		CatchingJudge.__compute_camera_localisation_from_katchet(self.__cam_pose_estimator, katchet_face_pts)
+		self.__cam_pose_estimator.compute_camera_localisation_from_katchet(katchet_face_pts)
 
 	def localise_human_feet(self, drill_context, frame_context: CatchingDrillFrameContext):
 		cam_pose_estimator = drill_context.get_cam_pose_estimator()
@@ -298,21 +298,6 @@ class CatchingJudge(Judge):
 
 		
 		return frame
-
-	@staticmethod
-	def __compute_camera_localisation_from_katchet(cam_pose_estimator: PoseEstimator, katchet_face):
-		katchet_board = KatchetBoard.from_vertices_2d(katchet_face)
-
-		inliers = np.zeros((4, 3), dtype=np.float64)
-
-		return cam_pose_estimator.localise_camera(
-			points_3d=katchet_board.get_vertices_3d(),
-			points_2d=katchet_board.get_vertices_2d(),
-			iterations=500,
-			reprojection_err=2.0,
-			inliners=inliers,
-			confidence=0.95,
-		)
 
 	@staticmethod
 	def __render_ground_plane(pose_estimator: PoseEstimator, mask):
