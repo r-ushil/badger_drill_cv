@@ -18,7 +18,6 @@ mp_pose = mp.solutions.pose
 
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PoseEstimator
-	__cam_intrinsics: CameraIntrinsics
 
 	def __init__(self, input_video_path, cam_intrinsics: CameraIntrinsics):
 		super().__init__(input_video_path)
@@ -33,8 +32,6 @@ class CatchingJudge(Judge):
 		# TODO: Remove self.ball_positions as stored on drill context
 		self.ball_positions = []
 
-		# TODO: Remove cam_intrinsics
-		self.__cam_intrinsics = cam_intrinsics
 		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
@@ -264,7 +261,6 @@ class CatchingJudge(Judge):
 			self.write_frame(output_frame)
 
 	def generate_output_frame(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
-		# TODO: Frame context should't store drill context
 		frame = frame_context.frame_bgr()
 
 		ball_positions = drill_context.get_ball_positions()
