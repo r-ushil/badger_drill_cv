@@ -33,12 +33,6 @@ class CatchingDrillFrameContext():
 	def frame_bgr(self):
 		return self.__frame
 
-	def register_human_pose_estimator(self, human_pose_estimator: mp_pose.Pose):
-		self.__human_pose_estimator = human_pose_estimator
-
-	def get_human_pose_estimator(self) -> mp_pose.Pose:
-		return self.__human_pose_estimator
-
 	def register_human_landmarks(self, human_landmarks):
 		self.__human_landmarks = human_landmarks
 
