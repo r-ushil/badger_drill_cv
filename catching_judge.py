@@ -41,15 +41,13 @@ class CatchingJudge(Judge):
 		self.write_video(drill_context, frame_contexts)
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
-		# convert colour format from BGR to RBG
-		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.flip(frame, -1)
 		frame_context = CatchingDrillFrameContext(frame)
 
-		self.katchet_board_detection(frame_context)
+		self.detect_katchet_board(frame_context)
 		self.detect_ball(drill_context, frame_context)
 		self.detect_pose(frame_context)
-		self.localise_human_feet(drill_context, frame_context)
+		self.detect_human_feet(drill_context, frame_context)
 
 		return frame_context
 
@@ -114,7 +112,7 @@ class CatchingJudge(Judge):
 			self.pose_estimator.process(frame_context.frame_rgb()).pose_landmarks
 		)
 
-	def katchet_board_detection(self, frame_context: CatchingDrillFrameContext):
+	def detect_katchet_board(self, frame_context: CatchingDrillFrameContext):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 
@@ -172,7 +170,7 @@ class CatchingJudge(Judge):
 
 		self.__cam_pose_estimator.compute_camera_localisation_from_katchet(katchet_face_pts)
 
-	def localise_human_feet(self, drill_context, frame_context: CatchingDrillFrameContext):
+	def detect_human_feet(self, drill_context, frame_context: CatchingDrillFrameContext):
 		cam_pose_estimator = drill_context.get_cam_pose_estimator()
 		pose_landmarks = frame_context.get_human_landmarks()
 
