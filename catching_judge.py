@@ -29,9 +29,6 @@ class CatchingJudge(Judge):
 			model_complexity=2,    
 		)
 
-		# TODO: Remove self.ball_positions as stored on drill context
-		self.ball_positions = []
-
 		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
