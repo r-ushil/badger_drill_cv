@@ -40,6 +40,24 @@ class CatchingJudge(Judge):
 		
 		self.write_video(drill_context, frame_contexts)
 
+	def process_frame(self, drill_context: CatchingDrillContext, frame):
+		# convert colour format from BGR to RBG
+		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
+		frame = cv2.flip(frame, -1)
+		frame_context = CatchingDrillFrameContext(frame)
+
+		self.katchet_board_detection(frame_context)
+		self.detect_ball(drill_context, frame_context)
+		self.detect_pose(frame_context)
+		self.localise_human_feet(drill_context, frame_context)
+
+		return frame_context
+
+	def write_video(self, drill_context, frame_contexts: List[CatchingDrillFrameContext]):
+		for frame_context in frame_contexts:
+			output_frame = self.generate_output_frame(drill_context, frame_context)
+			self.write_frame(output_frame)
+
 	def detect_ball(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext):
 		frame = frame_context.frame_hsv()
 
@@ -233,24 +251,6 @@ class CatchingJudge(Judge):
 			colour=(0, 255, 0),
 			show_label=False
 		))
-
-	def process_frame(self, drill_context: CatchingDrillContext, frame):
-		# convert colour format from BGR to RBG
-		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
-		frame = cv2.flip(frame, -1)
-		frame_context = CatchingDrillFrameContext(frame)
-
-		self.katchet_board_detection(frame_context)
-		self.detect_ball(drill_context, frame_context)
-		self.detect_pose(frame_context)
-		self.localise_human_feet(drill_context, frame_context)
-
-		return frame_context
-
-	def write_video(self, drill_context, frame_contexts: List[CatchingDrillFrameContext]):
-		for frame_context in frame_contexts:
-			output_frame = self.generate_output_frame(drill_context, frame_context)
-			self.write_frame(output_frame)
 
 	def generate_output_frame(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
 		frame = frame_context.frame_bgr()
