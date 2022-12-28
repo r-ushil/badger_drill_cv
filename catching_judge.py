@@ -14,7 +14,7 @@ from frame_effect import FrameEffectType, FrameEffect
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-class KatchetDrillContext():
+class CatchingDrillContext():
 	__ball_positions: list
 
 	def __init__(self) -> None:
@@ -26,17 +26,15 @@ class KatchetDrillContext():
 	def get_ball_positions(self) -> list:
 		return self.__ball_positions
 
-class KatchetDrillFrameContext():
+class CatchingDrillFrameContext():
 	__frame: cv2.Mat
 	__cam_pose_estimator: Optional[PoseEstimator]
 	__human_pose_estimator: Optional[mp_pose.Pose]
 
-	__katchet_face_poly: cv2.Mat
-
 	'''
 		:param frame must be BGR
 	'''
-	def __init__(self, drill_context: KatchetDrillContext, frame):
+	def __init__(self, drill_context: CatchingDrillContext, frame):
 		self.__drill_context = drill_context
 
 		self.__frame = frame
@@ -57,7 +55,7 @@ class KatchetDrillFrameContext():
 	def frame_bgr(self):
 		return self.__frame
 
-	def drill_context(self) -> KatchetDrillContext:
+	def drill_context(self) -> CatchingDrillContext:
 		return self.__drill_context
 
 	def register_cam_pose_estimator(self, cam_pose_estimator: PoseEstimator):
@@ -104,7 +102,7 @@ class CatchingJudge(Judge):
 		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
-		context = KatchetDrillContext()
+		context = CatchingDrillContext()
 
 		for frame in self.get_frames():
 			self.process_frame(context, frame)
@@ -112,7 +110,7 @@ class CatchingJudge(Judge):
 	def _resize(self, img):
 		return cv2.resize(img, (375, 750))
 
-	def detect_ball(self, frame_context: KatchetDrillFrameContext):
+	def detect_ball(self, frame_context: CatchingDrillFrameContext):
 		frame = frame_context.frame_hsv()
 
 		# define range of blue color in HSV (red turns to blue in HSV)
@@ -164,14 +162,14 @@ class CatchingJudge(Judge):
 			drill_context.register_ball_position(ball_position)
 
 		
-	def detect_pose(self, frame_context: KatchetDrillFrameContext):
+	def detect_pose(self, frame_context: CatchingDrillFrameContext):
 		# Convert the BGR image to RGB before processing.
 		results = self.pose_estimator.process(frame_context.frame_rgb())
 
 		frame_context.register_human_landmarks(results.pose_landmarks)
 		frame_context.register_human_pose_estimator(results)
 
-	def katchet_board_detection(self, frame_context: KatchetDrillFrameContext):
+	def katchet_board_detection(self, frame_context: CatchingDrillFrameContext):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 
@@ -233,7 +231,7 @@ class CatchingJudge(Judge):
 
 		frame_context.register_cam_pose_estimator(cam_pose_estimator)
 
-	def localise_human_feet(self, frame_context: KatchetDrillFrameContext):
+	def localise_human_feet(self, frame_context: CatchingDrillFrameContext):
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
 		pose_landmarks = frame_context.get_human_landmarks()
 
@@ -313,12 +311,12 @@ class CatchingJudge(Judge):
 			show_label=False
 		))
 
-	def process_frame(self, context: KatchetDrillContext, frame):
+	def process_frame(self, context: CatchingDrillContext, frame):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.flip(frame, -1)
 
-		frame_context = KatchetDrillFrameContext(context, frame)
+		frame_context = CatchingDrillFrameContext(context, frame)
 
 		self.katchet_board_detection(frame_context)
 		self.detect_ball(frame_context)
@@ -332,7 +330,7 @@ class CatchingJudge(Judge):
 
 		self.write_frame(output_frame)
 
-	def generate_output_frame(self, frame_context: KatchetDrillFrameContext) -> cv2.Mat:
+	def generate_output_frame(self, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
 		drill_context = frame_context.drill_context()
 
 		frame = frame_context.frame_bgr()
