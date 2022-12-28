@@ -92,11 +92,9 @@ class CatchingJudge(Judge):
 
 		
 	def detect_pose(self, frame_context: CatchingDrillFrameContext):
-		# Convert the BGR image to RGB before processing.
-		results = self.pose_estimator.process(frame_context.frame_rgb())
-
-		frame_context.register_human_landmarks(results.pose_landmarks)
-		frame_context.register_human_pose_estimator(results)
+		frame_context.register_human_landmarks(
+			self.pose_estimator.process(frame_context.frame_rgb()).pose_landmarks
+		)
 
 	def katchet_board_detection(self, frame_context: CatchingDrillFrameContext):
 		# convert colour format from BGR to RBG
