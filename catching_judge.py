@@ -30,24 +30,26 @@ class CatchingJudge(Judge):
 			model_complexity=2,    
 		)
 
+		# TODO: Remove self.ball_positions as stored on drill context
 		self.ball_positions = []
 
+		# TODO: Remove cam_intrinsics
 		self.__cam_intrinsics = cam_intrinsics
 		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
 
 	def process_and_write_video(self):
-		drill_context = CatchingDrillContext()
+		drill_context = CatchingDrillContext(self.__cam_pose_estimator)
 		frame_contexts = []
 
 		for frame in self.get_frames():
 			frame_contexts.append(self.process_frame(drill_context, frame))
 		
-		self.write_video(frame_contexts)
+		self.write_video(drill_context, frame_contexts)
 
 	def _resize(self, img):
 		return cv2.resize(img, (375, 750))
 
-	def detect_ball(self, frame_context: CatchingDrillFrameContext):
+	def detect_ball(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext):
 		frame = frame_context.frame_hsv()
 
 		# define range of blue color in HSV (red turns to blue in HSV)
@@ -95,7 +97,6 @@ class CatchingJudge(Judge):
 		# draw the smallest circle
 		if len(detected) > 0:
 			ball_position = detected[0]
-			drill_context = frame_context.drill_context()
 			drill_context.register_ball_position(ball_position)
 
 		
@@ -162,14 +163,10 @@ class CatchingJudge(Judge):
 
 		katchet_face_pts = np.reshape(katchet_face_poly, (4, 2))
 
-		cam_pose_estimator = PoseEstimator(self.__cam_intrinsics)
+		CatchingJudge.__compute_camera_localisation_from_katchet(self.__cam_pose_estimator, katchet_face_pts)
 
-		CatchingJudge.__compute_camera_localisation_from_katchet(cam_pose_estimator, katchet_face_pts)
-
-		frame_context.register_cam_pose_estimator(cam_pose_estimator)
-
-	def localise_human_feet(self, frame_context: CatchingDrillFrameContext):
-		cam_pose_estimator = frame_context.get_cam_pose_estimator()
+	def localise_human_feet(self, drill_context, frame_context: CatchingDrillFrameContext):
+		cam_pose_estimator = drill_context.get_cam_pose_estimator()
 		pose_landmarks = frame_context.get_human_landmarks()
 
 		if cam_pose_estimator is None or pose_landmarks is None:
@@ -252,27 +249,27 @@ class CatchingJudge(Judge):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 		frame = cv2.flip(frame, -1)
-		frame_context = CatchingDrillFrameContext(drill_context, frame)
+		frame_context = CatchingDrillFrameContext(frame)
 
 		self.katchet_board_detection(frame_context)
-		self.detect_ball(frame_context)
+		self.detect_ball(drill_context, frame_context)
 		self.detect_pose(frame_context)
-		self.localise_human_feet(frame_context)
+		self.localise_human_feet(drill_context, frame_context)
 
 		return frame_context
 
-	def write_video(self, frame_contexts: List[CatchingDrillFrameContext]):
+	def write_video(self, drill_context, frame_contexts: List[CatchingDrillFrameContext]):
 		for frame_context in frame_contexts:
-			output_frame = self.generate_output_frame(frame_context)
+			output_frame = self.generate_output_frame(drill_context, frame_context)
 			self.write_frame(output_frame)
 
-	def generate_output_frame(self, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
-		drill_context = frame_context.drill_context()
-
+	def generate_output_frame(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
+		# TODO: Frame context should't store drill context
 		frame = frame_context.frame_bgr()
 
 		ball_positions = drill_context.get_ball_positions()
-		cam_pose_estimator = frame_context.get_cam_pose_estimator()
+		cam_pose_estimator = drill_context.get_cam_pose_estimator()
+
 		human_landmarks = frame_context.get_human_landmarks()
 		frame_effects = frame_context.get_frame_effects()
 

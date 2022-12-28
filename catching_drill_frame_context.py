@@ -10,17 +10,13 @@ mp_pose = mp.solutions.pose
 
 class CatchingDrillFrameContext():
 	__frame: cv2.Mat
-	__cam_pose_estimator: Optional[PoseEstimator]
 	__human_pose_estimator: Optional[mp_pose.Pose]
 
 	'''
 		:param frame must be BGR
 	'''
-	def __init__(self, drill_context: CatchingDrillContext, frame):
-		self.__drill_context = drill_context
-
+	def __init__(self, frame):
 		self.__frame = frame
-		self.__cam_pose_estimator = None
 		self.__human_pose_estimator = None
 		self.__human_landmarks = None
 		self.__frame_effects = []
@@ -36,15 +32,6 @@ class CatchingDrillFrameContext():
 
 	def frame_bgr(self):
 		return self.__frame
-
-	def drill_context(self) -> CatchingDrillContext:
-		return self.__drill_context
-
-	def register_cam_pose_estimator(self, cam_pose_estimator: PoseEstimator):
-		self.__cam_pose_estimator = cam_pose_estimator
-
-	def get_cam_pose_estimator(self) -> PoseEstimator:
-		return self.__cam_pose_estimator
 
 	def register_human_pose_estimator(self, human_pose_estimator: mp_pose.Pose):
 		self.__human_pose_estimator = human_pose_estimator
