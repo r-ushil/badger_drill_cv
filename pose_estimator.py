@@ -2,6 +2,9 @@ from cv2 import solvePnPRansac, Rodrigues
 from calib3d import Calib, Point2D, Point3D
 from numpy import append, array, concatenate, float64, matmul, ndarray, reshape, zeros
 from typing import Optional
+import numpy as np
+
+from katchet_board import KatchetBoard
 
 class CameraIntrinsics:
     __focal_len: float
@@ -59,6 +62,20 @@ class PoseEstimator:
 
         self.__cam_calib = None
 
+    def compute_camera_localisation_from_katchet(self, katchet_face):
+        katchet_board = KatchetBoard.from_vertices_2d(katchet_face)
+
+        inliers = np.zeros((4, 3), dtype=np.float64)
+
+        self.localise_camera(
+            points_3d=katchet_board.get_vertices_3d(),
+            points_2d=katchet_board.get_vertices_2d(),
+            iterations=500,
+            reprojection_err=2.0,
+            inliners=inliers,
+            confidence=0.95,
+        )
+
     def localise_camera(
         self,
         points_3d: ndarray[(3, int), float64],
@@ -101,8 +118,6 @@ class PoseEstimator:
 
         image_w, image_h = self.__cam_intrinsics.image_dims()
         self.__cam_calib = Calib(width=image_w, height=image_h, T=tra_vec, R=rot_mat, K=self.__cam_mat)
-
-        return self.__rot_tra_mat
 
     def is_localised(self) -> bool:
         return self.__cam_calib is not None
