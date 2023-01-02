@@ -198,6 +198,15 @@ class CatchingJudge(Judge):
 			np.array([0, 0.5, -1])
 		)
 
+		x_plane = Plane(
+			np.array([0, 0, 0]),
+			np.array([1, 0, 0]),
+			np.array([1, 0, 1])
+		)
+
+		angle_between_planes = trajectory_plane.calculate_angle_with_plane(x_plane)
+		print((angle_between_planes / (2 * np.pi)) * 360)
+
 		circle_initial_point = np.array([2, 0, 0])
 		point_rotation_matrix = \
 			Plane.get_rotation_matrix_about_point(np.pi / 4, np.array([0, 0, 0]), axis="Z")
@@ -209,17 +218,27 @@ class CatchingJudge(Judge):
 			current_point = point_rotation_matrix @ current_point 
 			
 		trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
+		x_plane_points = x_plane.sample_grid_points(20, 1)
 
-		def trajectory_plane_points_predicate(point):
+		def plane_points_to_print(point):
 			(x, _, z) = point
-			return z <= 0 and z > -0.8 and x >= -2
+			return z <= 0 and z > -0.5 and x >= -2
 
-		trajectory_plane_points = list(filter(trajectory_plane_points_predicate, trajectory_plane_points))
+		trajectory_plane_points = list(filter(plane_points_to_print, trajectory_plane_points))
+		x_plane_points = list(filter(plane_points_to_print, x_plane_points))
 
 		frame_context.add_frame_effect(FrameEffect(
 			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
 			primary_label="Trajectory plane points",
 			points_multiple=trajectory_plane_points,
+			colour=(0, 0, 255),
+			show_label=False
+		))
+
+		frame_context.add_frame_effect(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+			primary_label="X plane points",
+			points_multiple=x_plane_points,
 			colour=(0, 0, 255),
 			show_label=False
 		))
