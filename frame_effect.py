@@ -5,6 +5,7 @@ class FrameEffectType(Enum):
 	POINTS_MULTIPLE = 1
 	POINT_SINGLE = 2
 	KATCHET_FACE_POLY = 3
+	TEXT = 4
 
 class FrameEffect:
 	def __init__(self, 
@@ -52,6 +53,13 @@ class FrameEffect:
 
 				self.katchet_face_poly = katchet_face_poly
 				self.colour = colour
+			
+			case FrameEffectType.TEXT:
+				assert display_label is not None
+				assert show_label is not None
+
+				self.display_label = display_label
+				self.show_label = show_label
 	
 	@staticmethod
 	def generate_point_string(point):
