@@ -49,8 +49,13 @@ class Plane:
 		
 		return points
 	
-	def get_angle_between_axis(self, axis = "X", zero_axis = "Z"):
-		pass
+	# Returns the angle between two planes in radians
+	def calculate_angle_with_plane(self, plane):
+		# cos theta = (n1 . n2) / (|n1| * |n2|)
+		return np.arccos(
+			np.dot(self.n, plane.n) / 
+			(np.linalg.norm(self.n) * np.linalg.norm(plane.n))
+		)
 
 	@staticmethod
 	def get_rotation_matrix_about_point(theta_rad, point, axis = "Z"):
