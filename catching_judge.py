@@ -205,7 +205,6 @@ class CatchingJudge(Judge):
 		)
 
 		angle_between_planes = trajectory_plane.calculate_angle_with_plane(x_plane)
-		print((angle_between_planes / (2 * np.pi)) * 360)
 
 		circle_initial_point = np.array([2, 0, 0])
 		point_rotation_matrix = \
@@ -241,6 +240,20 @@ class CatchingJudge(Judge):
 			points_multiple=x_plane_points,
 			colour=(0, 0, 255),
 			show_label=False
+		))
+
+		frame_context.add_frame_effect(FrameEffect(
+			frame_effect_type=FrameEffectType.TEXT,
+			primary_label="Angle between planes",
+			display_label=f"t = {(angle_between_planes / (2 * np.pi)) * 360}",
+			show_label=True
+		))
+
+		frame_context.add_frame_effect(FrameEffect(
+			frame_effect_type=FrameEffectType.TEXT,
+			primary_label="Angle between planes",
+			display_label=f"180 - t = {180 - ((angle_between_planes / (2 * np.pi)) * 360)}",
+			show_label=True
 		))
 
 		frame_context.add_frame_effect(FrameEffect(
@@ -296,6 +309,7 @@ class CatchingJudge(Judge):
 		))
 
 		if cam_pose_estimator is not None:
+			label_counter = 1
 			for effect in frame_effects:
 				match effect.frame_effect_type:
 					case FrameEffectType.POINTS_MULTIPLE:
@@ -312,6 +326,19 @@ class CatchingJudge(Judge):
 							thickness=2,
 							lineType=cv2.LINE_AA
 						)
+					case FrameEffectType.TEXT:
+						if effect.show_label:
+							cv2.putText(
+								frame,
+								effect.display_label,
+								(20, label_counter * 40),
+								fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+								fontScale=1,
+								color=(0, 0, 0),
+								thickness=2,
+								lineType=cv2.LINE_AA,
+							)
+							label_counter += 1
 
 		
 		return frame
