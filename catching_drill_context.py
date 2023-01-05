@@ -37,6 +37,15 @@ class CatchingDrillContext():
 
 		self.frame_effectss = []
 	
+	def generate_augmented_data(self, video_dims):
+		self.generate_heel_2d_positions(video_dims)
+		self.generate_heel_3d_positions()
+		self.generate_trajectory_plane()
+		self.generate_x_plane()
+		self.generate_ground_plane()
+		self.generate_angle_between_planes()
+		self.generate_circle_points()
+	
 	def generate_heel_2d_positions(self, video_dims):
 		assert len(self.pose_landmarkss) > 0
 
