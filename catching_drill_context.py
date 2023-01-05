@@ -1,6 +1,8 @@
 import mediapipe as mp
 import numpy as np
 
+from copy import copy
+
 from frame_effect import FrameEffect, FrameEffectType
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from plane import Plane
@@ -130,20 +132,24 @@ class CatchingDrillContext():
 		
 	
 	def generate_frame_effects(self):
+		ball_positions_so_far = []
+
 		for (frame,
 			katchet_face,
 			left_heel_3d,
 			right_heel_3d,
 			trajectory_plane,
 			angle_between_planes,
-			pose_landmarks) in zip(
+			pose_landmarks,
+			ball_position) in zip(
 				self.frames, 
 				self.katchet_faces, 
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
 				self.trajectory_planes,
 				self.angle_between_planes,
-				self.pose_landmarkss
+				self.pose_landmarkss,
+				self.ball_positions
 			):
 
 			frame_effects = []
@@ -160,8 +166,8 @@ class CatchingDrillContext():
 
 			if left_heel_3d is not None:
 				frame_effects.append(FrameEffect(
-					frame_effect_type=FrameEffectType.POINT_SINGLE,
-					point_single=left_heel_3d,
+					frame_effect_type=FrameEffectType.POINT_3D_SINGLE,
+					point_3d_single=left_heel_3d,
 					primary_label="Left Heel",
 					display_label=FrameEffect.generate_point_string(left_heel_3d),
 					show_label=True,
@@ -170,8 +176,8 @@ class CatchingDrillContext():
 
 			if right_heel_3d is not None:
 				frame_effects.append(FrameEffect(
-					frame_effect_type=FrameEffectType.POINT_SINGLE,
-					point_single=right_heel_3d,
+					frame_effect_type=FrameEffectType.POINT_3D_SINGLE,
+					point_3d_single=right_heel_3d,
 					primary_label="Right Heel",
 					display_label=FrameEffect.generate_point_string(right_heel_3d),
 					show_label=True,
@@ -186,9 +192,9 @@ class CatchingDrillContext():
 				trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
 				trajectory_plane_points = list(filter(plane_points_to_print, trajectory_plane_points))
 				frame_effects.append(FrameEffect(
-					frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+					frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 					primary_label="Trajectory plane points",
-					points_multiple=trajectory_plane_points,
+					points_3d_multiple=trajectory_plane_points,
 					colour=(0, 0, 255),
 					show_label=False
 				))
@@ -197,9 +203,9 @@ class CatchingDrillContext():
 				x_plane_points = self.x_plane.sample_grid_points(20, 1)
 				x_plane_points = list(filter(plane_points_to_print, x_plane_points))
 				frame_effects.append(FrameEffect(
-					frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+					frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 					primary_label="X plane points",
-					points_multiple=x_plane_points,
+					points_3d_multiple=x_plane_points,
 					colour=(0, 0, 255),
 					show_label=False
 				))
@@ -208,9 +214,9 @@ class CatchingDrillContext():
 			if self.ground_plane_fixed is not None:
 				ground_plane_points = self.ground_plane_fixed.sample_grid_points(10, 1)
 				frame_effects.append(FrameEffect(
-					frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+					frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 					primary_label="Ground plane points",
-					points_multiple=ground_plane_points,
+					points_3d_multiple=ground_plane_points,
 					colour=(255, 0, 0),
 					show_label=False
 				))
@@ -232,22 +238,31 @@ class CatchingDrillContext():
 			
 			if self.circle_points_fixed is not None:
 				frame_effects.append(FrameEffect(
-				frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 				primary_label="Circle points",
-				points_multiple=self.circle_points_fixed,
+				points_3d_multiple=self.circle_points_fixed,
 				colour=(0, 255, 0),
 				show_label=False
 			))
 
 			frame_effects.append(FrameEffect(
-				frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 				primary_label="Katchet board points",
-				points_multiple=np.array([KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R]),
+				points_3d_multiple=np.array([KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R]),
 				colour=(0, 0, 255),
 				show_label=True
 			))
 
 			if pose_landmarks is not None:
 				mp_drawing.draw_landmarks(frame, pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
-			# TODO: Print ball position
+			
+			if ball_position is not None:
+				ball_positions_so_far.append(ball_position)
+			
+			frame_effects.append(FrameEffect(
+				frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
+				primary_label="Ball positions",
+				points_2d_multiple=copy(ball_positions_so_far),
+				colour=(0, 255, 0),
+				show_label=False
+			))	

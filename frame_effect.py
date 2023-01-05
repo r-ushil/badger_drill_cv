@@ -2,17 +2,19 @@ from enum import Enum
 import numpy as np
 
 class FrameEffectType(Enum):
-	POINTS_MULTIPLE = 1
-	POINT_SINGLE = 2
-	KATCHET_FACE_POLY = 3
-	TEXT = 4
+	POINTS_2D_MULTIPLE = 1
+	POINTS_3D_MULTIPLE = 2
+	POINT_3D_SINGLE = 3
+	KATCHET_FACE_POLY = 4
+	TEXT = 5
 
 class FrameEffect:
 	def __init__(self, 
 		frame_effect_type=None, 
 		primary_label=None, 
-		points_multiple=None, 
-		point_single=None, 
+		points_3d_multiple=None, 
+		point_3d_single=None, 
+		points_2d_multiple=None, 
 		colour=None,
 		display_label=None,
 		show_label=None,
@@ -24,25 +26,25 @@ class FrameEffect:
 		self.primary_label = primary_label
 
 		match frame_effect_type:
-			case FrameEffectType.POINTS_MULTIPLE:
-				assert points_multiple is not None
+			case FrameEffectType.POINTS_3D_MULTIPLE:
+				assert points_3d_multiple is not None
 				assert colour is not None
 				assert show_label is not None
 
-				self.points_multiple = points_multiple
+				self.points_3d_multiple = points_3d_multiple
 				self.colour = colour
 				self.show_label = show_label
 
-			case FrameEffectType.POINT_SINGLE:
-				assert point_single is not None
-				assert point_single.shape == (3, 1)
+			case FrameEffectType.POINT_3D_SINGLE:
+				assert point_3d_single is not None
+				assert point_3d_single.shape == (3, 1)
 				assert colour is not None
 				assert show_label is not None
 
 				if show_label and display_label is None:
-					display_label = FrameEffect.generate_point_string(point_single)
+					display_label = FrameEffect.generate_point_string(point_3d_single)
 
-				self.point_single = point_single
+				self.point_3d_single = point_3d_single
 				self.colour = colour
 				self.display_label = display_label
 				self.show_label = show_label
@@ -60,19 +62,39 @@ class FrameEffect:
 
 				self.display_label = display_label
 				self.show_label = show_label
+			
+			case FrameEffectType.POINTS_2D_MULTIPLE:
+				assert points_2d_multiple is not None
+				assert colour is not None
+				assert show_label is not None
+
+				self.points_2d_multiple = points_2d_multiple
+				self.colour = colour
+				self.show_label = show_label
+				self.display_label = display_label
+
 	
 	@staticmethod
 	def generate_point_string(point):
-		assert point.shape == (3, ) or point.shape == (3, 1)
+		assert point.shape == (3, ) or point.shape == (3, 1) or point.shape == (2, ) or point.shape == (2, 1)
+		if point.shape == (3, ) or point.shape == (3, 1):
+			if point.shape == (3, 1):
+				point = point.reshape((3, ))
 
-		if point.shape == (3, 1):
-			point = point.reshape((3, ))
-
-		wx = point[0]
-		wy = point[1]
-		wz = point[2]
+			wx = point[0]
+			wy = point[1]
+			wz = point[2]
 		
-		return f"({np.around(wx, 2)}, {np.around(wy, 2)}, {np.around(wz, 2)})"
+			return f"({np.around(wx, 2)}, {np.around(wy, 2)}, {np.around(wz, 2)})"
+		else:
+			if point.shape == (2, 1):
+				point = point.reshape((2, ))
+
+			wx = point[0]
+			wy = point[1]
+		
+			return f"({np.around(wx, 2)}, {np.around(wy, 2)}"
+
 
 
 
