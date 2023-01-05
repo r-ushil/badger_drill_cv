@@ -52,6 +52,10 @@ class Plane:
 	# Returns the angle between two planes in radians
 	def calculate_angle_with_plane(self, plane):
 		# cos theta = (n1 . n2) / (|n1| * |n2|)
+
+		# Assert that the planes are not parallel
+		assert np.linalg.norm(self.n - plane.n) >= 0.0001
+
 		return np.arccos(
 			np.dot(self.n, plane.n) / 
 			(np.linalg.norm(self.n) * np.linalg.norm(plane.n))
