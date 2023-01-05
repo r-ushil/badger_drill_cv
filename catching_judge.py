@@ -11,7 +11,7 @@ from judge import Judge
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from frame_effect import FrameEffectType, FrameEffect
 from catching_drill_context import CatchingDrillContext
-from catching_drill_frame_context import CatchingDrillFrameContext
+from augmented_frame import AugmentedFrame
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -33,23 +33,23 @@ class CatchingJudge(Judge):
 
 	def process_and_write_video(self):
 		drill_context = CatchingDrillContext()
-		frame_contexts = []
 
 		for frame in self.get_frames():
-			frame_contexts.append(self.process_frame(drill_context, frame))
+			self.process_frame(drill_context, frame)
 		
 		drill_context.generate_augmented_data(self.get_video_dims())
 		drill_context.generate_frame_effects()
 
-		self.write_video(drill_context, frame_contexts)
+		for output_frame in self.generate_output_frames(drill_context):
+			self.write_frame(output_frame)
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
 		frame = cv2.flip(frame, -1)
 		drill_context.frames.append(frame)
 
-		frame_context = CatchingDrillFrameContext(frame)
+		augmented_frame = AugmentedFrame(frame)
 
-		katchet_face_pts = self.detect_katchet_board(frame_context)
+		katchet_face_pts = self.detect_katchet_board(augmented_frame)
 		drill_context.katchet_faces.append(katchet_face_pts)
 
 		point_projector = None
@@ -57,20 +57,13 @@ class CatchingJudge(Judge):
 			point_projector = PointProjector.initialize_from_katchet_face_pts(self.__cam_intrinsics, katchet_face_pts)
 		drill_context.point_projectors.append(point_projector)
 
-		ball_position = self.detect_ball(drill_context, frame_context)
+		ball_position = self.detect_ball(augmented_frame)
 		drill_context.ball_positions.append(ball_position)
 
-		drill_context.pose_landmarkss.append(self.detect_pose(frame_context))
+		drill_context.pose_landmarkss.append(self.detect_pose(augmented_frame))
 
-		return frame_context
-
-	def write_video(self, drill_context, frame_contexts: List[CatchingDrillFrameContext]):
-		output_frames = self.generate_output_frames(drill_context, frame_contexts)
-		for output_frame in output_frames:
-			self.write_frame(output_frame)
-
-	def detect_ball(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext):
-		frame = frame_context.frame_hsv()
+	def detect_ball(self, augmented_frame: AugmentedFrame):
+		frame = augmented_frame.frame_hsv()
 
 		# define range of blue color in HSV (red turns to blue in HSV)
 		lower_blue = np.array([160, 160, 100])
@@ -121,14 +114,14 @@ class CatchingJudge(Judge):
 		else:
 			return None
 
-	def detect_pose(self, frame_context: CatchingDrillFrameContext):
-		return self.pose_estimator.process(frame_context.frame_rgb()).pose_landmarks
+	def detect_pose(self, augmented_frame: AugmentedFrame):
+		return self.pose_estimator.process(augmented_frame.frame_rgb()).pose_landmarks
 
-	def detect_katchet_board(self, frame_context: CatchingDrillFrameContext):
+	def detect_katchet_board(self, augmented_frame: AugmentedFrame):
 		# convert colour format from BGR to RBG
 		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
 
-		frame = frame_context.frame_hsv()
+		frame = augmented_frame.frame_hsv()
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
 
 		def h(val):
@@ -175,8 +168,8 @@ class CatchingJudge(Judge):
 
 		return katchet_face_pts
 
-	def generate_output_frames(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
-		augmented_frames = []
+	def generate_output_frames(self, drill_context: CatchingDrillContext) -> cv2.Mat:
+		annotated_frames = []
 		for frame, point_projector, frame_effects in zip(drill_context.frames, drill_context.point_projectors, drill_context.frame_effectss):
 
 			if point_projector is not None:
@@ -214,9 +207,9 @@ class CatchingJudge(Judge):
 								)
 								label_counter += 1
 
-			augmented_frames.append(frame)
+			annotated_frames.append(frame)
 
-		return augmented_frames
+		return annotated_frames
 
 	@staticmethod
 	def __label_3d_point(pose_estimator: PointProjector, point_3d: np.ndarray[(3, 1), np.float64], frame, label: str, show_label = True, colour = (255, 0, 0), point_size = 10):
