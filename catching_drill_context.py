@@ -210,7 +210,6 @@ class CatchingDrillContext():
 					show_label=False
 				))
 			
-			# TODO: Add in size argument and print as blue with size 2
 			if self.ground_plane_fixed is not None:
 				ground_plane_points = self.ground_plane_fixed.sample_grid_points(10, 1)
 				frame_effects.append(FrameEffect(
@@ -218,7 +217,8 @@ class CatchingDrillContext():
 					primary_label="Ground plane points",
 					points_3d_multiple=ground_plane_points,
 					colour=(255, 0, 0),
-					show_label=False
+					show_label=False,
+					point_size=2
 				))
 
 			if angle_between_planes is not None:

@@ -19,6 +19,7 @@ class FrameEffect:
 		display_label=None,
 		show_label=None,
 		katchet_face_poly=None,
+		point_size=None
 		):
 		assert frame_effect_type is not None
 		assert primary_label is not None
@@ -34,6 +35,7 @@ class FrameEffect:
 				self.points_3d_multiple = points_3d_multiple
 				self.colour = colour
 				self.show_label = show_label
+				self.point_size = 10 if point_size is None else point_size
 
 			case FrameEffectType.POINT_3D_SINGLE:
 				assert point_3d_single is not None
