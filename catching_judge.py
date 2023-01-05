@@ -5,7 +5,7 @@ import cv2
 
 from numpy import array
 from plane import Plane
-from pose_estimator import CameraIntrinsics, PoseEstimator
+from point_projector import CameraIntrinsics, PointProjector
 
 from judge import Judge
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
@@ -17,7 +17,7 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 class CatchingJudge(Judge):
-	__cam_pose_estimator: PoseEstimator
+	__cam_pose_estimator: PointProjector
 
 	def __init__(self, input_video_path, cam_intrinsics: CameraIntrinsics):
 		super().__init__(input_video_path)
@@ -29,31 +29,49 @@ class CatchingJudge(Judge):
 			model_complexity=2,    
 		)
 
-		self.__cam_pose_estimator = PoseEstimator(cam_intrinsics)
+		self.__cam_intrinsics = cam_intrinsics
 
 	def process_and_write_video(self):
-		drill_context = CatchingDrillContext(self.__cam_pose_estimator)
+		drill_context = CatchingDrillContext()
 		frame_contexts = []
 
 		for frame in self.get_frames():
 			frame_contexts.append(self.process_frame(drill_context, frame))
 		
+		drill_context.generate_heel_2d_positions(self.get_video_dims())
+		drill_context.generate_heel_3d_positions()
+		drill_context.generate_frame_effects()
+
 		self.write_video(drill_context, frame_contexts)
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
 		frame = cv2.flip(frame, -1)
+		drill_context.frames.append(frame)
+
 		frame_context = CatchingDrillFrameContext(frame)
 
-		self.detect_katchet_board(frame_context)
-		self.detect_ball(drill_context, frame_context)
-		self.detect_pose(frame_context)
-		self.detect_human_feet(drill_context, frame_context)
+		katchet_face_pts = self.detect_katchet_board(frame_context)
+		drill_context.katchet_faces.append(katchet_face_pts)
+
+		point_projector = None
+		if katchet_face_pts is not None:
+			point_projector = PointProjector.initialize_from_katchet_face_pts(self.__cam_intrinsics, katchet_face_pts)
+		drill_context.point_projectors.append(point_projector)
+
+		ball_position = self.detect_ball(drill_context, frame_context)
+		drill_context.ball_positions.append(ball_position)
+
+		# registers pose on frame context, does so using frame and
+		drill_context.pose_landmarkss.append(self.detect_pose(frame_context))
+		
+# 		if katchet_face_pts is not None:
+# 			self.detect_human_feet(drill_context, frame_context)
 
 		return frame_context
 
 	def write_video(self, drill_context, frame_contexts: List[CatchingDrillFrameContext]):
-		for frame_context in frame_contexts:
-			output_frame = self.generate_output_frame(drill_context, frame_context)
+		output_frames = self.generate_output_frames(drill_context, frame_contexts)
+		for output_frame in output_frames:
 			self.write_frame(output_frame)
 
 	def detect_ball(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext):
@@ -104,13 +122,12 @@ class CatchingJudge(Judge):
 		# draw the smallest circle
 		if len(detected) > 0:
 			ball_position = detected[0]
-			drill_context.register_ball_position(ball_position)
+			return ball_position
+		else:
+			return None
 
-		
 	def detect_pose(self, frame_context: CatchingDrillFrameContext):
-		frame_context.register_human_landmarks(
-			self.pose_estimator.process(frame_context.frame_rgb()).pose_landmarks
-		)
+		return self.pose_estimator.process(frame_context.frame_rgb()).pose_landmarks
 
 	def detect_katchet_board(self, frame_context: CatchingDrillFrameContext):
 		# convert colour format from BGR to RBG
@@ -146,7 +163,7 @@ class CatchingJudge(Judge):
 
 		# if no contours were found, return the original frame
 		if len(contour_lens) == 0:
-			return
+			return None
 
 		katchet_face_len = contour_lens[0][0]
 		katchet_face = contour_lens[0][1]
@@ -157,7 +174,7 @@ class CatchingJudge(Judge):
 
 		# if polygon is not a quadrilateral
 		if not len(katchet_face_poly) == 4:
-			return
+			return None
 
 		frame_context.add_frame_effect(FrameEffect(
 			primary_label="Katchet Face Poly",
@@ -168,10 +185,10 @@ class CatchingJudge(Judge):
 
 		katchet_face_pts = np.reshape(katchet_face_poly, (4, 2))
 
-		self.__cam_pose_estimator.compute_camera_localisation_from_katchet(katchet_face_pts)
+		return katchet_face_pts
 
 	def detect_human_feet(self, drill_context, frame_context: CatchingDrillFrameContext):
-		cam_pose_estimator = drill_context.get_cam_pose_estimator()
+		cam_pose_estimator = drill_context.cam_pose_estimators[-1] if len(drill_context.cam_pose_estimators) > 0 else None
 		pose_landmarks = frame_context.get_human_landmarks()
 
 		if cam_pose_estimator is None or pose_landmarks is None:
@@ -282,82 +299,85 @@ class CatchingJudge(Judge):
 			show_label=False
 		))
 
-	def generate_output_frame(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
-		frame = frame_context.frame_bgr()
+	def generate_output_frames(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
+		# frame = frame_context.frame_bgr()
 
-		ball_positions = drill_context.get_ball_positions()
-		cam_pose_estimator = drill_context.get_cam_pose_estimator()
+		augmented_frames = []
+		for frame, point_projector, frame_effects in zip(drill_context.frames, drill_context.point_projectors, drill_context.frame_effectss):
 
-		human_landmarks = frame_context.get_human_landmarks()
-		frame_effects = frame_context.get_frame_effects()
+			# ball_positions = drill_context.ball_positions
+			# cam_pose_estimator = drill_context.cam_pose_estimators[-1]
 
-		for (area, centre, radius) in ball_positions:
-			cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
+			# human_landmarks = frame_context.get_human_landmarks()
 
-		if cam_pose_estimator is not None:
-			CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
+			# for (area, centre, radius) in ball_positions:
+			# 	cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
 
-		if human_landmarks is not None:
-			mp_drawing.draw_landmarks(frame, human_landmarks, mp_pose.POSE_CONNECTIONS)
+			# if cam_pose_estimator is not None:
+			# 	CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
+
+			# if human_landmarks is not None:
+			# 	mp_drawing.draw_landmarks(frame, human_landmarks, mp_pose.POSE_CONNECTIONS)
 		
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
-			primary_label="Katchet board points",
-			points_multiple=np.array([KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R]),
-			colour=(0, 0, 255),
-			show_label=True
-		))
+			# frame_context.add_frame_effect(FrameEffect(
+			# 	frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
+			# 	primary_label="Katchet board points",
+			# 	points_multiple=np.array([KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R]),
+			# 	colour=(0, 0, 255),
+			# 	show_label=True
+			# ))
 
-		if cam_pose_estimator is not None:
-			label_counter = 1
-			for effect in frame_effects:
-				match effect.frame_effect_type:
-					case FrameEffectType.POINTS_MULTIPLE:
-						for point in effect.points_multiple:
-							CatchingJudge.__label_point(cam_pose_estimator, point, frame, None, effect.show_label, colour=effect.colour)
-					case FrameEffectType.POINT_SINGLE:
-						CatchingJudge.__label_point(cam_pose_estimator, effect.point_single, frame, effect.display_label, show_label=effect.show_label, colour=effect.colour)
-					case FrameEffectType.KATCHET_FACE_POLY:
-						cv2.drawContours(
-							image=frame,
-							contours=[effect.katchet_face_poly],
-							contourIdx=0,
-							color=effect.colour,
-							thickness=2,
-							lineType=cv2.LINE_AA
-						)
-					case FrameEffectType.TEXT:
-						if effect.show_label:
-							cv2.putText(
-								frame,
-								effect.display_label,
-								(20, label_counter * 40),
-								fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-								fontScale=1,
-								color=(0, 0, 0),
+			if point_projector is not None:
+				label_counter = 1
+				for effect in frame_effects:
+					match effect.frame_effect_type:
+						case FrameEffectType.POINTS_MULTIPLE:
+							for point in effect.points_multiple:
+								CatchingJudge.__label_point(point_projector, point, frame, None, effect.show_label, colour=effect.colour)
+						case FrameEffectType.POINT_SINGLE:
+							CatchingJudge.__label_point(point_projector, effect.point_single, frame, effect.display_label, show_label=effect.show_label, colour=effect.colour)
+						case FrameEffectType.KATCHET_FACE_POLY:
+							cv2.drawContours(
+								image=frame,
+								contours=[effect.katchet_face_poly],
+								contourIdx=0,
+								color=effect.colour,
 								thickness=2,
-								lineType=cv2.LINE_AA,
+								lineType=cv2.LINE_AA
 							)
-							label_counter += 1
+						case FrameEffectType.TEXT:
+							if effect.show_label:
+								cv2.putText(
+									frame,
+									effect.display_label,
+									(20, label_counter * 40),
+									fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+									fontScale=1,
+									color=(0, 0, 0),
+									thickness=2,
+									lineType=cv2.LINE_AA,
+								)
+								label_counter += 1
 
-		
-		return frame
+			augmented_frames.append(frame)
+
+		return augmented_frames
 
 	@staticmethod
-	def __render_ground_plane(pose_estimator: PoseEstimator, mask):
+	def jjj__render_ground_plane(pose_estimator: PointProjector, mask):
 		for x in range(-4, 6):
 			for y in range(-4, 6):
 				CatchingJudge.__draw_point(pose_estimator, array([[x], [y], [.0]], dtype=np.float64), mask)
 
 	@staticmethod
-	def __draw_point(pose_estimator: PoseEstimator, point: np.ndarray[(3, 1), np.float64], mask):
+	def __draw_point(pose_estimator: PointProjector, point: np.ndarray[(3, 1), np.float64], mask):
 		pt = pose_estimator.project_3d_to_2d(point).astype('int')
 		center = (pt[0], pt[1])
 		
 		cv2.circle(mask, center, 2, (255, 0, 0), -1)
 
 	@staticmethod
-	def __label_point(pose_estimator: PoseEstimator, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, show_label = True, colour = (255, 0, 0)):
+	def __label_point(pose_estimator: PointProjector, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, show_label = True, colour = (255, 0, 0)):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
 
 		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')

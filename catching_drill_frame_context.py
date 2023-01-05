@@ -2,7 +2,7 @@ from typing import Optional
 import cv2
 import mediapipe as mp
 
-from pose_estimator import PoseEstimator
+from point_projector import PointProjector
 from catching_drill_context import CatchingDrillContext
 
 mp_drawing = mp.solutions.drawing_utils
