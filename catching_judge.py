@@ -38,8 +38,15 @@ class CatchingJudge(Judge):
 		for frame in self.get_frames():
 			frame_contexts.append(self.process_frame(drill_context, frame))
 		
+		# TODO: Move these inside a function in drill context
 		drill_context.generate_heel_2d_positions(self.get_video_dims())
 		drill_context.generate_heel_3d_positions()
+		drill_context.generate_trajectory_plane()
+		drill_context.generate_x_plane()
+		drill_context.generate_ground_plane()
+		drill_context.generate_angle_between_planes()
+		drill_context.generate_circle_points()
+
 		drill_context.generate_frame_effects()
 
 		self.write_video(drill_context, frame_contexts)
@@ -61,11 +68,7 @@ class CatchingJudge(Judge):
 		ball_position = self.detect_ball(drill_context, frame_context)
 		drill_context.ball_positions.append(ball_position)
 
-		# registers pose on frame context, does so using frame and
 		drill_context.pose_landmarkss.append(self.detect_pose(frame_context))
-		
-# 		if katchet_face_pts is not None:
-# 			self.detect_human_feet(drill_context, frame_context)
 
 		return frame_context
 
@@ -176,156 +179,18 @@ class CatchingJudge(Judge):
 		if not len(katchet_face_poly) == 4:
 			return None
 
-		frame_context.add_frame_effect(FrameEffect(
-			primary_label="Katchet Face Poly",
-			frame_effect_type=FrameEffectType.KATCHET_FACE_POLY,
-			katchet_face_poly=katchet_face,
-			colour=(0, 0, 0),
-		))
-
 		katchet_face_pts = np.reshape(katchet_face_poly, (4, 2))
 
 		return katchet_face_pts
 
-	def detect_human_feet(self, drill_context, frame_context: CatchingDrillFrameContext):
-		cam_pose_estimator = drill_context.cam_pose_estimators[-1] if len(drill_context.cam_pose_estimators) > 0 else None
-		pose_landmarks = frame_context.get_human_landmarks()
-
-		if cam_pose_estimator is None or pose_landmarks is None:
-			return
-
-		left_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
-		right_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HEEL]
-
-		vid_w, vid_h = self.get_video_dims()
-		sx_left_foot = left_heel.x * vid_w
-		sy_left_foot = left_heel.y * vid_h
-		sx_right_foot = right_heel.x * vid_w
-		sy_right_foot = right_heel.y * vid_h
-
-		left_heel_screen_coordinates = array([sx_left_foot, sy_left_foot])
-		right_heel_screen_coordinates = array([sx_right_foot, sy_right_foot])
-
-		left_heel_world = cam_pose_estimator.project_2d_to_3d(left_heel_screen_coordinates, Z=0)
-		right_heel_world = cam_pose_estimator.project_2d_to_3d(right_heel_screen_coordinates, Z=0)
-
-		trajectory_plane = Plane(
-			np.array([0, 0.5, 0]),
-			np.array(left_heel_world.reshape(3,)),
-			np.array([0, 0.5, -1])
-		)
-
-		x_plane = Plane(
-			np.array([0, 0, 0]),
-			np.array([1, 0, 0]),
-			np.array([1, 0, 1])
-		)
-
-		angle_between_planes = trajectory_plane.calculate_angle_with_plane(x_plane)
-
-		circle_initial_point = np.array([2, 0, 0])
-		point_rotation_matrix = \
-			Plane.get_rotation_matrix_about_point(np.pi / 4, np.array([0, 0, 0]), axis="Z")
-
-		circle_points = []
-		current_point = np.append(circle_initial_point, 1)
-		for x in range(8):
-			circle_points.append(np.delete(current_point, -1))
-			current_point = point_rotation_matrix @ current_point 
-			
-		trajectory_plane_points = trajectory_plane.sample_grid_points(20, 1)
-		x_plane_points = x_plane.sample_grid_points(20, 1)
-
-		def plane_points_to_print(point):
-			(x, _, z) = point
-			return z <= 0 and z > -0.5 and x >= -2
-
-		trajectory_plane_points = list(filter(plane_points_to_print, trajectory_plane_points))
-		x_plane_points = list(filter(plane_points_to_print, x_plane_points))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
-			primary_label="Trajectory plane points",
-			points_multiple=trajectory_plane_points,
-			colour=(0, 0, 255),
-			show_label=False
-		))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
-			primary_label="X plane points",
-			points_multiple=x_plane_points,
-			colour=(0, 0, 255),
-			show_label=False
-		))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.TEXT,
-			primary_label="Angle between planes",
-			display_label=f"t = {(angle_between_planes / (2 * np.pi)) * 360}",
-			show_label=True
-		))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.TEXT,
-			primary_label="Angle between planes",
-			display_label=f"180 - t = {180 - ((angle_between_planes / (2 * np.pi)) * 360)}",
-			show_label=True
-		))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.POINT_SINGLE,
-			point_single=left_heel_world,
-			primary_label="Left Heel",
-			display_label=FrameEffect.generate_point_string(left_heel_world),
-			show_label=True,
-			colour=(255, 0, 0)
-		))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.POINT_SINGLE,
-			point_single=right_heel_world,
-			primary_label="Right Heel",
-			display_label=FrameEffect.generate_point_string(right_heel_world),
-			show_label=True,
-			colour=(255, 0, 0)
-		))
-
-		frame_context.add_frame_effect(FrameEffect(
-			frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
-			primary_label="Circle points",
-			points_multiple=circle_points,
-			colour=(0, 255, 0),
-			show_label=False
-		))
-
 	def generate_output_frames(self, drill_context: CatchingDrillContext, frame_context: CatchingDrillFrameContext) -> cv2.Mat:
-		# frame = frame_context.frame_bgr()
-
 		augmented_frames = []
 		for frame, point_projector, frame_effects in zip(drill_context.frames, drill_context.point_projectors, drill_context.frame_effectss):
 
+			# TODO: Print ball positions
 			# ball_positions = drill_context.ball_positions
-			# cam_pose_estimator = drill_context.cam_pose_estimators[-1]
-
-			# human_landmarks = frame_context.get_human_landmarks()
-
 			# for (area, centre, radius) in ball_positions:
 			# 	cv2.circle(frame, centre, radius, (0, 255, 0), cv2.FILLED)
-
-			# if cam_pose_estimator is not None:
-			# 	CatchingJudge.__render_ground_plane(cam_pose_estimator, frame)
-
-			# if human_landmarks is not None:
-			# 	mp_drawing.draw_landmarks(frame, human_landmarks, mp_pose.POSE_CONNECTIONS)
-		
-			# frame_context.add_frame_effect(FrameEffect(
-			# 	frame_effect_type=FrameEffectType.POINTS_MULTIPLE,
-			# 	primary_label="Katchet board points",
-			# 	points_multiple=np.array([KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R]),
-			# 	colour=(0, 0, 255),
-			# 	show_label=True
-			# ))
 
 			if point_projector is not None:
 				label_counter = 1
@@ -363,19 +228,7 @@ class CatchingJudge(Judge):
 
 		return augmented_frames
 
-	@staticmethod
-	def jjj__render_ground_plane(pose_estimator: PointProjector, mask):
-		for x in range(-4, 6):
-			for y in range(-4, 6):
-				CatchingJudge.__draw_point(pose_estimator, array([[x], [y], [.0]], dtype=np.float64), mask)
-
-	@staticmethod
-	def __draw_point(pose_estimator: PointProjector, point: np.ndarray[(3, 1), np.float64], mask):
-		pt = pose_estimator.project_3d_to_2d(point).astype('int')
-		center = (pt[0], pt[1])
-		
-		cv2.circle(mask, center, 2, (255, 0, 0), -1)
-
+	# TODO: Add in size argument
 	@staticmethod
 	def __label_point(pose_estimator: PointProjector, point_3d: np.ndarray[(3, 1), np.float64], mask, label: str, show_label = True, colour = (255, 0, 0)):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
