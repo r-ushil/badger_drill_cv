@@ -38,15 +38,7 @@ class CatchingJudge(Judge):
 		for frame in self.get_frames():
 			frame_contexts.append(self.process_frame(drill_context, frame))
 		
-		# TODO: Move these inside a function in drill context
-		drill_context.generate_heel_2d_positions(self.get_video_dims())
-		drill_context.generate_heel_3d_positions()
-		drill_context.generate_trajectory_plane()
-		drill_context.generate_x_plane()
-		drill_context.generate_ground_plane()
-		drill_context.generate_angle_between_planes()
-		drill_context.generate_circle_points()
-
+		drill_context.generate_augmented_data(self.get_video_dims())
 		drill_context.generate_frame_effects()
 
 		self.write_video(drill_context, frame_contexts)
