@@ -41,14 +41,14 @@ class CameraIntrinsics:
 class NotLocalisedError(Exception): pass
 
 def assert_localised(func):
-    def func_assert_localised(self: "PoseEstimator", *args, **kwargs):
+    def func_assert_localised(self: "PointProjector", *args, **kwargs):
         if self.is_localised():
             return func(self, *args, **kwargs)
         else:
             raise NotLocalisedError("Call .localise_camera() to localise camera first!")
     return func_assert_localised
 
-class PoseEstimator:
+class PointProjector:
     __cam_calib: Optional[Calib]
     __cam_intrinsics: CameraIntrinsics
     __cam_mat: ndarray[(3, 3), float64]
@@ -61,9 +61,15 @@ class PoseEstimator:
         self.__rot_tra_mat = zeros((3, 4), dtype=float64)
 
         self.__cam_calib = None
+    
+    @staticmethod
+    def initialize_from_katchet_face_pts(cam_intrinsics: CameraIntrinsics, katchet_face_pts):
+        pose_estimator = PointProjector(cam_intrinsics)
+        pose_estimator.compute_camera_localisation_from_katchet(katchet_face_pts)
+        return pose_estimator
 
-    def compute_camera_localisation_from_katchet(self, katchet_face):
-        katchet_board = KatchetBoard.from_vertices_2d(katchet_face)
+    def compute_camera_localisation_from_katchet(self, katchet_face_pts):
+        katchet_board = KatchetBoard.from_vertices_2d(katchet_face_pts)
 
         inliers = np.zeros((4, 3), dtype=np.float64)
 
@@ -110,8 +116,8 @@ class PoseEstimator:
 
         tra_vec_inv = -matmul(rot_mat_inv, tra_vec)
 
-        affine = PoseEstimator.construct_affine(rot_mat, tra_vec)
-        affine_inv = PoseEstimator.construct_affine(rot_mat_inv, tra_vec_inv)
+        affine = PointProjector.construct_affine(rot_mat, tra_vec)
+        affine_inv = PointProjector.construct_affine(rot_mat_inv, tra_vec_inv)
 
         self.__rot_tra_mat = affine
         self.__rot_tra_mat_inv = affine_inv

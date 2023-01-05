@@ -1,5 +1,5 @@
 from catching_judge import CatchingJudge
-from pose_estimator import CameraIntrinsics
+from point_projector import CameraIntrinsics
 
 import sys
 
