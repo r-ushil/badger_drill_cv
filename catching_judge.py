@@ -193,7 +193,7 @@ class CatchingJudge(Judge):
 					match effect.frame_effect_type:
 						case FrameEffectType.POINTS_3D_MULTIPLE:
 							for point_3d in effect.points_3d_multiple:
-								CatchingJudge.__label_3d_point(point_projector, point_3d, frame, None, effect.show_label, colour=effect.colour)
+								CatchingJudge.__label_3d_point(point_projector, point_3d, frame, None, effect.show_label, colour=effect.colour, point_size=effect.point_size)
 						case FrameEffectType.POINTS_2D_MULTIPLE:
 							for point_2d in effect.points_2d_multiple:
 								CatchingJudge.__label_2d_point(point_2d, frame, effect.display_label, effect.show_label, colour=effect.colour)
@@ -226,9 +226,8 @@ class CatchingJudge(Judge):
 
 		return augmented_frames
 
-	# TODO: Add in size argument
 	@staticmethod
-	def __label_3d_point(pose_estimator: PointProjector, point_3d: np.ndarray[(3, 1), np.float64], frame, label: str, show_label = True, colour = (255, 0, 0)):
+	def __label_3d_point(pose_estimator: PointProjector, point_3d: np.ndarray[(3, 1), np.float64], frame, label: str, show_label = True, colour = (255, 0, 0), point_size = 10):
 		wx, wy, wz = point_3d[0], point_3d[1], point_3d[2]
 
 		point_2d = pose_estimator.project_3d_to_2d(point_3d).astype('int')
@@ -236,12 +235,12 @@ class CatchingJudge(Judge):
 		if show_label and label is None:
 			label = FrameEffect.generate_point_string(point_3d)
 		
-		CatchingJudge.__label_2d_point(point_2d, frame, label, show_label, colour)
+		CatchingJudge.__label_2d_point(point_2d, frame, label, show_label, colour, point_size)
 	
 	@staticmethod
-	def __label_2d_point(point_2d: np.ndarray[(2, 1), np.float64], frame, label, show_label, colour):
+	def __label_2d_point(point_2d: np.ndarray[(2, 1), np.float64], frame, label, show_label, colour, point_size = 10):
 		sx, sy = point_2d[0], point_2d[1]
-		cv2.circle(frame, (sx, sy), 10, colour, -1)
+		cv2.circle(frame, (sx, sy), point_size, colour, -1)
 		if show_label:
 			cv2.putText(
 				frame,
