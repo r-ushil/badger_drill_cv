@@ -1,7 +1,8 @@
+from copy import deepcopy
 from cv2 import solvePnPRansac, Rodrigues
 from calib3d import Calib, Point2D, Point3D
 from numpy import append, array, concatenate, float64, matmul, ndarray, reshape, zeros
-from typing import Optional
+from typing import Optional, Tuple
 import numpy as np
 
 from katchet_board import KatchetBoard
@@ -125,6 +126,23 @@ class PointProjector:
         image_w, image_h = self.__cam_intrinsics.image_dims()
         self.__cam_calib = Calib(width=image_w, height=image_h, T=tra_vec, R=rot_mat, K=self.__cam_mat)
 
+    # Returns a copy of the camera rotated by the rotation matrix
+    def created_rotated_camera(self, rotation_matrix: ndarray[(4, 4), float64]):
+        rotated_point_projector = deepcopy(self)
+
+        rot_tra_mat = np.concatenate(
+            (rotated_point_projector.__rot_tra_mat, np.array([[0, 0, 0, 1]], dtype=np.float64)),
+            axis=0
+        )
+
+        rotated_affine_mat = rotation_matrix @ rot_tra_mat
+        rot_mat, tra_vec = PointProjector.deconstruct_affine(rotated_affine_mat)
+
+        image_w, image_h = rotated_point_projector.__cam_intrinsics.image_dims()
+        rotated_point_projector.__cam_calib = Calib(width=image_w, height=image_h, T=tra_vec, R=rot_mat, K=rotated_point_projector.__cam_mat)
+
+        return rotated_point_projector
+
     def is_localised(self) -> bool:
         return self.__cam_calib is not None
 
@@ -161,6 +179,48 @@ class PointProjector:
 
         return point_3d.reshape((3, 1)).astype('float64')
 
+    @staticmethod
     def construct_affine(rot_mat: ndarray[(3, 3), float64], tra_vec: ndarray[(3, 1)]) -> ndarray[(3, 4), float64]:
-        return concatenate((rot_mat, tra_vec), axis=1, dtype=float64)
+        res = concatenate((rot_mat, tra_vec), axis=1, dtype=float64)
+        print(res.shape)
+        return res
+
+    @staticmethod
+    def deconstruct_affine(affine_mat: ndarray[(4, 4), float64]) -> \
+        Tuple[ndarray[(3, 3), float64], ndarray[(3, 1), float64]]:
+
+        res = np.delete(affine_mat, 3, axis=0)
+        res = np.split(res, [3, 4], axis=1)
+        rot_mat, tra_vec = res[0], res[1]
+
+        return rot_mat, tra_vec
+
+if __name__ == "__main__":
+    affine = np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+    ])
+
+    rot_mat, tra_vec = PointProjector.deconstruct_affine(affine)
+
+    print(affine)
+    print(rot_mat)
+    print(tra_vec)
+
+    fake_affine = PointProjector.construct_affine(rot_mat, tra_vec)
+
+    print(fake_affine)
+
+    real_affine = np.concatenate(
+        (fake_affine, np.array([[0, 0, 0, 1]], dtype=np.float64)),
+        axis=0
+    )
+
+    print(real_affine)
+
+
+
+
 
