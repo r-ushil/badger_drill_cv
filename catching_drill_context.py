@@ -51,20 +51,23 @@ class CatchingDrillContext():
 		# self.generate_circle_points()
 
 	def generate_frame_effects(self):
-		ball_positions_so_far = []
+		ball_2d_positions_so_far = []
+		ball_3d_positions_so_far = []
 
 		for (frame,
 			katchet_face,
 			left_heel_3d,
 			right_heel_3d,
 			pose_landmarks,
-			ball_position) in zip(
+			ball_2d_position,
+			ball_3d_position) in zip(
 				self.frames, 
 				self.katchet_faces, 
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
 				self.pose_landmarkss,
 				self.ball_2d_positions,
+				self.ball_3d_positions
 			):
 
 			frame_effects = []
@@ -72,7 +75,8 @@ class CatchingDrillContext():
 			# TODO: Add frame effect for pose landmarks rather than directly
 			# annotating the frame
 			CatchingDrillContext.add_pose_landmarks_frame_effect(frame, pose_landmarks)
-			CatchingDrillContext.add_ball_positions_frame_effect(frame_effects, ball_position, ball_positions_so_far)
+			# CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
+			CatchingDrillContext.add_ball_3d_positions_frame_effect(frame_effects, ball_3d_position, ball_3d_positions_so_far)
 			CatchingDrillContext.add_katchet_face_frame_effect(frame_effects, katchet_face)
 			CatchingDrillContext.add_katchet_board_points_frame_effect(frame_effects)
 
@@ -228,8 +232,6 @@ class CatchingDrillContext():
 			ball_3d_position = Plane.multiply_orthogonal_matrix_by_non_orthogonal_vec(rot_mat_inv, ball_3d_position_rotated)
 
 			self.ball_3d_positions.append(ball_3d_position)
-
-
 	
 	# Frame effect augmentation below -----------------------------------------------
 		
@@ -388,14 +390,27 @@ class CatchingDrillContext():
 			mp_drawing.draw_landmarks(frame, pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
 	@staticmethod
-	def add_ball_positions_frame_effect(frame_effects, ball_position, ball_positions_so_far):
-		if ball_position is not None:
-			ball_positions_so_far.append(ball_position)
+	def add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far):
+		if ball_2d_position is not None:
+			ball_2d_positions_so_far.append(ball_2d_position)
 
 		frame_effects.append(FrameEffect(
 			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
-			primary_label="Ball positions",
-			points_2d_multiple=copy(ball_positions_so_far),
+			primary_label="Ball 2D positions",
+			points_2d_multiple=copy(ball_2d_positions_so_far),
 			colour=(0, 255, 0),
 			show_label=False
+		))
+
+	@staticmethod
+	def add_ball_3d_positions_frame_effect(frame_effects, ball_3d_position, ball_3d_positions_so_far):
+		if ball_3d_position is not None:
+			ball_3d_positions_so_far.append(ball_3d_position)
+
+		frame_effects.append(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
+			primary_label="Ball 3D positions",
+			points_3d_multiple=copy(ball_3d_positions_so_far),
+			colour=(0, 255, 0),
+			show_label=True
 		))
