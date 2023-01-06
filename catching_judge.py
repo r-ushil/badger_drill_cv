@@ -44,7 +44,6 @@ class CatchingJudge(Judge):
 			self.write_frame(output_frame)
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
-		frame = cv2.flip(frame, -1)
 		drill_context.frames.append(frame)
 
 		augmented_frame = AugmentedFrame(frame)
@@ -119,8 +118,6 @@ class CatchingJudge(Judge):
 
 	def detect_katchet_board(self, augmented_frame: AugmentedFrame):
 		# convert colour format from BGR to RBG
-		# gray_frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2GRAY)
-
 		frame = augmented_frame.frame_hsv()
 		frame = cv2.GaussianBlur(frame, (9, 9), cv2.BORDER_DEFAULT)
 
