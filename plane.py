@@ -81,6 +81,16 @@ class Plane:
 		res = np.concatenate((res, np.array([0.], dtype=np.float64)), axis=0)
 
 		return res
+	
+	@staticmethod
+	def multiply_orthogonal_matrix_by_non_orthogonal_vec(mat, vec):
+		assert mat.shape == (4, 4)
+		assert vec.shape == (3, 1)
+
+		res = mat @ np.concatenate((vec, np.array([[1.]])), axis=0)
+		res = np.delete(res, 3, axis=0)
+
+		return res
 
 	@staticmethod
 	def get_rotation_matrix_about_point(theta_rad, point, axis = "Z"):
@@ -154,6 +164,23 @@ def main():
 
 	res = plane2.calculate_intersection_point_between_planes(plane3)
 	assert_array_almost_equal(res, np.array([0, 0, 0]))
+
+	affine = np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [0, 0, 0, 1],
+    ])
+
+	vec = np.array([
+		[1],
+		[2],
+		[3]
+	])
+
+	res = Plane.multiply_orthogonal_matrix_by_non_orthogonal_vec(affine, vec)
+
+	print(res)
 
 
 if __name__ == "__main__":
