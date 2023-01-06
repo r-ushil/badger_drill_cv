@@ -143,9 +143,9 @@ class CatchingDrillContext():
 			trajectory_plane = None
 			if left_heel_3d_position is not None:
 				trajectory_plane = Plane(
-					np.array([0, 0.5, 0]),
+					np.array([0, 0.25, 0]),
 					np.array(left_heel_3d_position.reshape(3,)),
-					np.array([0, 0.5, -1])
+					np.array([0, 0.25, -1])
 				)
 
 			self.trajectory_planes.append(trajectory_plane)
