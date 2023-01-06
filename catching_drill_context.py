@@ -58,7 +58,8 @@ class CatchingDrillContext():
 			trajectory_plane,
 			angle_between_planes,
 			pose_landmarks,
-			ball_position) in zip(
+			ball_position,
+			intersection_point) in zip(
 				self.frames, 
 				self.katchet_faces, 
 				self.left_heel_3d_positions, 
@@ -66,7 +67,8 @@ class CatchingDrillContext():
 				self.trajectory_planes,
 				self.angle_between_planes,
 				self.pose_landmarkss,
-				self.ball_positions
+				self.ball_positions,
+				self.intersection_point_of_planes
 			):
 
 			frame_effects = []
@@ -86,6 +88,7 @@ class CatchingDrillContext():
 			CatchingDrillContext.add_ground_plane_frame_effect(frame_effects, self.ground_plane_fixed)
 
 			CatchingDrillContext.add_angle_printing_frame_effect(frame_effects, angle_between_planes)
+			CatchingDrillContext.add_intersection_point_frame_effect(frame_effects, intersection_point)
 			# CatchingDrillContext.add_circle_frame_effect(frame_effects, self.circle_points_fixed)
 
 			self.frame_effectss.append(frame_effects)
@@ -165,7 +168,7 @@ class CatchingDrillContext():
 			intersection_point = None
 			if trajectory_plane is not None:
 				intersection_point = \
-					trajectory_plane.calculate_intersection_point_between_planes(self.x_plane_fixed)
+					trajectory_plane.calculate_intersection_point_between_planes(self.x_plane_fixed).reshape((3, 1))
 			
 			self.intersection_point_of_planes.append(intersection_point)
 
@@ -230,6 +233,18 @@ class CatchingDrillContext():
 				display_label=FrameEffect.generate_point_string(right_heel_3d),
 				show_label=True,
 				colour=(255, 0, 0)
+			))
+
+	@staticmethod
+	def add_intersection_point_frame_effect(frame_effects, intersection_point):
+		if intersection_point is not None:
+			frame_effects.append(FrameEffect(
+				frame_effect_type=FrameEffectType.POINT_3D_SINGLE,
+				point_3d_single=intersection_point,
+				primary_label="Intersection point",
+				display_label=FrameEffect.generate_point_string(intersection_point),
+				show_label=True,
+				colour=(0, 255, 0)
 			))
 
 	@staticmethod
