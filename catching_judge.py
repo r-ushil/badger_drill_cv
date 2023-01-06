@@ -334,13 +334,18 @@ class CatchingJudge(Judge):
 				x,
 				# mediapipe y-axis is equivalent to the world z-axis
 				y,
-				z,
+				-z,
 			]).reshape(3, 1)
 		
-		def generate_world_vector(joint_world_mp):
+		def generate_world_vector(joint_world_mp, from_heel = 'left'):
+			heel_mp = left_heel_world_mp
+			heel_world = left_heel_world
+			if from_heel == 'right':
+				heel_mp = right_heel_world_mp
+				heel_world = right_heel_world
 			return cam_pose_estimator.transform_camera_to_world_axes(
-				1.5 * (joint_world_mp - left_heel_world_mp) +
-				cam_pose_estimator.transform_world_to_camera_axes(left_heel_world)
+				(joint_world_mp - heel_mp) * mp_scale +
+				cam_pose_estimator.transform_world_to_camera_axes(heel_world)
 			)
 			# p1_to_p2_mp = p2_mp - left_heel_world_mp
 			# p1_to_p2_world = np.dot(R, p1_to_p2_mp).reshape((3, 1))
@@ -382,19 +387,26 @@ class CatchingJudge(Judge):
 		right_heel_world = cam_pose_estimator.project_2d_to_3d(
 			right_heel_screen_coordinates, Y=0)
 
+		mp_scale_x = .3 / np.linalg.norm(left_hip_world_mp - right_hip_world_mp)
+		mp_scale_y = .6 / np.linalg.norm(left_hip_world_mp - left_knee_world_mp)
+
+		mp_scale = array([[mp_scale_x], [mp_scale_y], [mp_scale_x]])
+
+		print(mp_scale)
+
 		# left_to_right_heel_mp = right_heel_world_mp - left_heel_world_mp
 		# left_to_right_heel_world = (
 		# 	right_heel_world - left_heel_world).reshape((3,))
 		# R = Line.find_rotation_matrix(
 		# 	left_to_right_heel_mp, left_to_right_heel_world)
 		
-		right_index_world = generate_world_vector(right_index_world_mp)
+		right_index_world = generate_world_vector(right_index_world_mp, from_heel='right')
 		left_index_world = generate_world_vector(left_index_world_mp)
-		right_knee_world = generate_world_vector(right_knee_world_mp)
+		right_knee_world = generate_world_vector(right_knee_world_mp, from_heel='right')
 		left_knee_world = generate_world_vector(left_knee_world_mp)
-		right_hip_world = generate_world_vector(right_hip_world_mp)
+		right_hip_world = generate_world_vector(right_hip_world_mp, from_heel='right')
 		left_hip_world = generate_world_vector(left_hip_world_mp)
-		right_shoulder_world = generate_world_vector(right_shoulder_world_mp)
+		right_shoulder_world = generate_world_vector(right_shoulder_world_mp, from_heel='right')
 		left_shoulder_world = generate_world_vector(left_shoulder_world_mp)
 
 		frame_context.register_left_heel(left_heel_world)
@@ -437,6 +449,8 @@ class CatchingJudge(Judge):
 		cam_pose_estimator = frame_context.get_cam_pose_estimator()
 		katchet_face_poly = frame_context.get_katchet_face_poly()
 		human_landmarks = frame_context.get_human_landmarks()
+		left_index = frame_context.get_left_index()
+		right_index = frame_context.get_right_index()
 		left_heel = frame_context.get_left_heel()
 		right_heel = frame_context.get_right_heel()
 		right_index = frame_context.get_right_index()
@@ -470,43 +484,43 @@ class CatchingJudge(Judge):
 
 		if left_heel is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_heel, frame, "Left Heel", (255, 0, 0), False)
+				cam_pose_estimator, left_heel, frame, "Left Heel", colour=(255, 0, 0), show_label=False)
 
 		if right_heel is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_heel, frame, "Right Heel", (0, 0, 255))
+				cam_pose_estimator, right_heel, frame, "Right Heel", colour=(0, 0, 255))
 
 		if left_knee is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_knee, frame, "Left Knee", (255, 0, 0), False)
+				cam_pose_estimator, left_knee, frame, "Left Knee", colour=(255, 0, 0), show_label=False)
 
 		if right_knee is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_knee, frame, "Right Knee", (0, 0, 255))
+				cam_pose_estimator, right_knee, frame, "Right Knee", colour=(0, 0, 255))
 
 		if left_hip is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_hip, frame, "Left hip", (255, 0, 0), False)
+				cam_pose_estimator, left_hip, frame, "Left hip", colour=(255, 0, 0), show_label=False)
 
 		if right_hip is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_hip, frame, "Right hip", (0, 0, 255))
+				cam_pose_estimator, right_hip, frame, "Right hip", colour=(0, 0, 255))
 
 		if left_shoulder is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, left_shoulder, frame, "Left shoulder", (255, 0, 0), False)
+				cam_pose_estimator, left_shoulder, frame, "Left shoulder", colour=(255, 0, 0), show_label=False)
 
 		if right_shoulder is not None:
 			CatchingJudge.__label_point(
-				cam_pose_estimator, right_shoulder, frame, "Right shoulder", (0, 0, 255))
+				cam_pose_estimator, right_shoulder, frame, "Right shoulder", colour=(0, 0, 255))
 
-		# if right_index is not None:
-		#     CatchingJudge.__label_point(
-		#         cam_pose_estimator, right_index, frame, "Right Index")
+		if right_index is not None:
+			CatchingJudge.__label_point(
+				cam_pose_estimator, right_index, frame, "Right Index", colour=(0, 0, 255), show_label=False)
 
-		# if left_index is not None:
-		#     CatchingJudge.__label_point(
-		#         cam_pose_estimator, left_index, frame, "Left Index")
+		if left_index is not None:
+			CatchingJudge.__label_point(
+				cam_pose_estimator, left_index, frame, "Left Index", colour=(255, 0, 0))
 
 		if cam_pose_estimator is not None:
 			CatchingJudge.__label_point(
@@ -537,8 +551,8 @@ class CatchingJudge(Judge):
 
 	@staticmethod
 	def __render_ground_plane(pose_estimator: PoseEstimator, mask):
-		for x in range(-4, 6):
-			for z in range(-4, 6):
+		for x in range(-4, 10):
+			for z in range(-4, 10):
 				CatchingJudge.__draw_point(pose_estimator, array(
 					[[x], [.0], [z]], dtype=np.float64), mask)
 
@@ -559,11 +573,11 @@ class CatchingJudge(Judge):
 		cv2.circle(mask, (sx, sy), 10, colour, -1)
 		if show_label: 
 			cv2.putText(
-		    	mask,
-		    	f"({around(wx, 1)}, {around(wy, 1)}, {around(wz, 1)})", (sx, sy),
-		    	fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-		    	fontScale=0.5,
-		    	color=(255, 255, 255),
-		    	thickness=2,
-		    	lineType=cv2.LINE_AA,
+				mask,
+				f"({around(wx, 1)}, {around(wy, 1)}, {around(wz, 1)})", (sx, sy),
+				fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+				fontScale=0.5,
+				color=(255, 255, 255),
+				thickness=2,
+				lineType=cv2.LINE_AA,
 			)
