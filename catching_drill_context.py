@@ -167,7 +167,7 @@ class CatchingDrillContext():
 		assert self.trajectory_plane_fixed is not None
 
 		self.angle_between_planes_fixed = \
-			self.trajectory_plane_fixed.calculate_angle_with_plane(self.x_plane_fixed)
+			np.pi - self.trajectory_plane_fixed.calculate_angle_with_plane(self.x_plane_fixed)
 
 	def generate_intersection_point_of_planes(self):
 		assert self.x_plane_fixed is not None
