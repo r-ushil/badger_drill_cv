@@ -57,7 +57,7 @@ class CatchingJudge(Judge):
 		drill_context.point_projectors.append(point_projector)
 
 		ball_position = self.detect_ball(augmented_frame)
-		drill_context.ball_positions.append(ball_position)
+		drill_context.ball_2d_positions.append(ball_position)
 
 		drill_context.pose_landmarkss.append(self.detect_pose(augmented_frame))
 

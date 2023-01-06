@@ -127,7 +127,7 @@ class PointProjector:
         self.__cam_calib = Calib(width=image_w, height=image_h, T=tra_vec, R=rot_mat, K=self.__cam_mat)
 
     # Returns a copy of the camera rotated by the rotation matrix
-    def created_rotated_camera(self, rotation_matrix: ndarray[(4, 4), float64]):
+    def create_rotated_camera(self, rotation_matrix: ndarray[(4, 4), float64]):
         rotated_point_projector = deepcopy(self)
 
         rot_tra_mat = np.concatenate(
