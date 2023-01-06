@@ -29,6 +29,7 @@ class CatchingDrillContext():
 
 		self.trajectory_planes = []
 		self.angle_between_planes = []
+		self.intersection_point_of_planes = []
 
 		# Remain the same throughout the drill
 		self.x_plane_fixed = None
@@ -44,6 +45,7 @@ class CatchingDrillContext():
 		self.generate_x_plane()
 		self.generate_ground_plane()
 		self.generate_angle_between_planes()
+		self.generate_intersection_point_of_planes()
 		# self.generate_circle_points()
 
 	def generate_frame_effects(self):
@@ -155,6 +157,17 @@ class CatchingDrillContext():
 				angle_between_planes = trajectory_plane.calculate_angle_with_plane(self.x_plane_fixed)
 			
 			self.angle_between_planes.append(angle_between_planes)
+
+	def generate_intersection_point_of_planes(self):
+		assert self.x_plane_fixed is not None
+
+		for trajectory_plane in self.trajectory_planes:
+			intersection_point = None
+			if trajectory_plane is not None:
+				intersection_point = \
+					trajectory_plane.calculate_intersection_point_between_planes(self.x_plane_fixed)
+			
+			self.intersection_point_of_planes.append(intersection_point)
 
 	def generate_x_plane(self):
 		self.x_plane_fixed = Plane(
