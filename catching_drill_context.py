@@ -11,7 +11,7 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 class CatchingDrillContext():
-	ball_positions: list
+	ball_2d_positions: list
 
 	def __init__(self) -> None:
 		# Exist per frame
@@ -19,13 +19,15 @@ class CatchingDrillContext():
 		self.katchet_faces = []
 		self.point_projectors = []
 		self.pose_landmarkss = []
-		self.ball_positions = []
+		self.ball_2d_positions = []
 
 		self.left_heel_2d_positions = []
 		self.right_heel_2d_positions = []
 
 		self.left_heel_3d_positions = []
 		self.right_heel_3d_positions = []
+
+		self.ball_3d_positions = []
 
 		# Remain the same throughout the drill
 		self.x_plane_fixed = None
@@ -45,6 +47,7 @@ class CatchingDrillContext():
 		self.generate_ground_plane()
 		self.generate_angle_between_planes()
 		self.generate_intersection_point_of_planes()
+		self.generate_ball_3d_positions()
 		# self.generate_circle_points()
 
 	def generate_frame_effects(self):
@@ -61,7 +64,7 @@ class CatchingDrillContext():
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
 				self.pose_landmarkss,
-				self.ball_positions,
+				self.ball_2d_positions,
 			):
 
 			frame_effects = []
@@ -81,7 +84,7 @@ class CatchingDrillContext():
 			CatchingDrillContext.add_ground_plane_frame_effect(frame_effects, self.ground_plane_fixed)
 
 			CatchingDrillContext.add_angle_printing_frame_effect(frame_effects, self.angle_between_planes_fixed)
-			CatchingDrillContext.add_intersection_point_frame_effect(frame_effects, self.intersection_point_fixed)
+			CatchingDrillContext.add_intersection_point_frame_effect(frame_effects, self.intersection_point_of_planes_fixed)
 			# CatchingDrillContext.add_circle_frame_effect(frame_effects, self.circle_points_fixed)
 
 			self.frame_effectss.append(frame_effects)
@@ -166,7 +169,7 @@ class CatchingDrillContext():
 		assert self.x_plane_fixed is not None
 		assert self.trajectory_plane_fixed is not None
 
-		self.intersection_point_fixed = \
+		self.intersection_point_of_planes_fixed = \
 			self.trajectory_plane_fixed.calculate_intersection_point_between_planes(self.x_plane_fixed).reshape((3, 1))
 
 	def generate_x_plane(self):
@@ -195,6 +198,38 @@ class CatchingDrillContext():
 			current_point = point_rotation_matrix @ current_point 
 		
 		self.circle_points_fixed = circle_points
+	
+	def generate_ball_3d_positions(self):
+		assert self.angle_between_planes_fixed is not None
+		assert self.intersection_point_of_planes_fixed is not None
+
+		for point_projector, ball_2d_position in zip(self.point_projectors, self.ball_2d_positions):
+			if ball_2d_position is None or point_projector is None:
+				self.ball_3d_positions.append(None)
+				continue
+			
+			# TODO: Ensure these rotation matrices are around the correct axis
+			rot_mat = Plane.get_rotation_matrix_about_point(
+				self.angle_between_planes_fixed,
+				self.intersection_point_of_planes_fixed.reshape((3, ))
+			)
+
+			rot_mat_inv = Plane.get_rotation_matrix_about_point(
+				-self.angle_between_planes_fixed,
+				self.intersection_point_of_planes_fixed.reshape((3, ))
+			)
+			
+			rotated_point_projector = point_projector.create_rotated_camera(rot_mat)
+
+			# TODO: Ensure that this axis is correct
+			ball_3d_position_rotated = rotated_point_projector.project_2d_to_3d(ball_2d_position, X=0)	
+
+			# TODO: Ensure that this rotation matrix is multiplied in the correct order
+			ball_3d_position = Plane.multiply_orthogonal_matrix_by_non_orthogonal_vec(rot_mat_inv, ball_3d_position_rotated)
+
+			self.ball_3d_positions.append(ball_3d_position)
+
+
 	
 	# Frame effect augmentation below -----------------------------------------------
 		
