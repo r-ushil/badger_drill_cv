@@ -27,14 +27,13 @@ class CatchingDrillContext():
 		self.left_heel_3d_positions = []
 		self.right_heel_3d_positions = []
 
-		self.trajectory_planes = []
-		self.angle_between_planes = []
-		self.intersection_point_of_planes = []
-
 		# Remain the same throughout the drill
 		self.x_plane_fixed = None
 		self.ground_plane_fixed = None
 		self.circle_points_fixed = None
+		self.trajectory_plane_fixed = None
+		self.angle_between_planes_fixed = None
+		self.intersection_point_of_planes_fixed = None
 
 		self.frame_effectss = []
 	
@@ -55,20 +54,14 @@ class CatchingDrillContext():
 			katchet_face,
 			left_heel_3d,
 			right_heel_3d,
-			trajectory_plane,
-			angle_between_planes,
 			pose_landmarks,
-			ball_position,
-			intersection_point) in zip(
+			ball_position) in zip(
 				self.frames, 
 				self.katchet_faces, 
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
-				self.trajectory_planes,
-				self.angle_between_planes,
 				self.pose_landmarkss,
 				self.ball_positions,
-				self.intersection_point_of_planes
 			):
 
 			frame_effects = []
@@ -81,14 +74,14 @@ class CatchingDrillContext():
 			CatchingDrillContext.add_katchet_board_points_frame_effect(frame_effects)
 
 			CatchingDrillContext.add_left_heel_3d_frame_effect(frame_effects, left_heel_3d)
-			CatchingDrillContext.add_right_heel_3d_frame_effect(frame_effects, right_heel_3d)
+			# CatchingDrillContext.add_right_heel_3d_frame_effect(frame_effects, right_heel_3d)
 
-			CatchingDrillContext.add_trajectory_plane_frame_effect(frame_effects, trajectory_plane)
+			CatchingDrillContext.add_trajectory_plane_frame_effect(frame_effects, self.trajectory_plane_fixed)
 			CatchingDrillContext.add_x_plane_frame_effect(frame_effects, self.x_plane_fixed)
 			CatchingDrillContext.add_ground_plane_frame_effect(frame_effects, self.ground_plane_fixed)
 
-			CatchingDrillContext.add_angle_printing_frame_effect(frame_effects, angle_between_planes)
-			CatchingDrillContext.add_intersection_point_frame_effect(frame_effects, intersection_point)
+			CatchingDrillContext.add_angle_printing_frame_effect(frame_effects, self.angle_between_planes_fixed)
+			CatchingDrillContext.add_intersection_point_frame_effect(frame_effects, self.intersection_point_fixed)
 			# CatchingDrillContext.add_circle_frame_effect(frame_effects, self.circle_points_fixed)
 
 			self.frame_effectss.append(frame_effects)
@@ -138,39 +131,43 @@ class CatchingDrillContext():
 				self.right_heel_3d_positions.append(None)
 	
 	def generate_trajectory_plane(self):
-		for left_heel_3d_position in self.left_heel_3d_positions:
+		# TODO: Process ball positions, pick the 3d hand position where the ball 
+		# is intersecting with the hand to construct the trajectory plane
 
-			trajectory_plane = None
-			if left_heel_3d_position is not None:
-				trajectory_plane = Plane(
-					np.array([0, 0.25, 0]),
-					np.array(left_heel_3d_position.reshape(3,)),
-					np.array([0, 0.25, -1])
-				)
+		# Good for video 849
+		# self.trajectory_plane_fixed = Plane(
+		# 	np.array([0, 0.25, 0]),
+		# 	np.array([12, -2, 0]),
+		# 	np.array([0, 0.25, -1])
+		# )
 
-			self.trajectory_planes.append(trajectory_plane)
+		# Good for 902
+		# self.trajectory_plane_fixed = Plane(
+		# 	np.array([0, 0.25, 0]),
+		# 	np.array([13, 4.5, 0]),
+		# 	np.array([0, 0.25, -1])
+		# )
 
+		# Good for 101
+		self.trajectory_plane_fixed = Plane(
+			np.array([0, 0.25, 0]),
+			np.array([10, -0.15, 0]),
+			np.array([0, 0.25, -1])
+		)
 	
 	def generate_angle_between_planes(self):
 		assert self.x_plane_fixed is not None
+		assert self.trajectory_plane_fixed is not None
 
-		for trajectory_plane in self.trajectory_planes:
-			angle_between_planes = None
-			if trajectory_plane is not None:
-				angle_between_planes = trajectory_plane.calculate_angle_with_plane(self.x_plane_fixed)
-			
-			self.angle_between_planes.append(angle_between_planes)
+		self.angle_between_planes_fixed = \
+			self.trajectory_plane_fixed.calculate_angle_with_plane(self.x_plane_fixed)
 
 	def generate_intersection_point_of_planes(self):
 		assert self.x_plane_fixed is not None
+		assert self.trajectory_plane_fixed is not None
 
-		for trajectory_plane in self.trajectory_planes:
-			intersection_point = None
-			if trajectory_plane is not None:
-				intersection_point = \
-					trajectory_plane.calculate_intersection_point_between_planes(self.x_plane_fixed).reshape((3, 1))
-			
-			self.intersection_point_of_planes.append(intersection_point)
+		self.intersection_point_fixed = \
+			self.trajectory_plane_fixed.calculate_intersection_point_between_planes(self.x_plane_fixed).reshape((3, 1))
 
 	def generate_x_plane(self):
 		self.x_plane_fixed = Plane(
@@ -277,6 +274,23 @@ class CatchingDrillContext():
 				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 				primary_label="X plane points",
 				points_3d_multiple=x_plane_points,
+				colour=(0, 0, 255),
+				show_label=False
+			))
+
+	@staticmethod
+	def add_trajectory_plane_frame_effect(frame_effects, true_trajectory_plane):
+		def plane_points_to_print(point):
+			(x, _, z) = point
+			return z <= 0 and z > -3 and x >= -2
+
+		if true_trajectory_plane is not None:
+			true_trajectory_plane_points = true_trajectory_plane.sample_grid_points(20, 1)
+			true_trajectory_plane_points = list(filter(plane_points_to_print, true_trajectory_plane_points))
+			frame_effects.append(FrameEffect(
+				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
+				primary_label="True trajectory plane points",
+				points_3d_multiple=true_trajectory_plane_points,
 				colour=(0, 0, 255),
 				show_label=False
 			))

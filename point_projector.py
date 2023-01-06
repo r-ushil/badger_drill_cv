@@ -181,9 +181,7 @@ class PointProjector:
 
     @staticmethod
     def construct_affine(rot_mat: ndarray[(3, 3), float64], tra_vec: ndarray[(3, 1)]) -> ndarray[(3, 4), float64]:
-        res = concatenate((rot_mat, tra_vec), axis=1, dtype=float64)
-        print(res.shape)
-        return res
+        return concatenate((rot_mat, tra_vec), axis=1, dtype=float64)
 
     @staticmethod
     def deconstruct_affine(affine_mat: ndarray[(4, 4), float64]) -> \
