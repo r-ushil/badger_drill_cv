@@ -60,6 +60,27 @@ class Plane:
 			np.dot(self.n, plane.n) / 
 			(np.linalg.norm(self.n) * np.linalg.norm(plane.n))
 		)
+	
+	def calculate_intersection_point_between_planes(self, plane):
+		# Assumes both planes are vertical
+		# Assumes both planes intersect
+		# Assumes Z = 0 for the found point the lies on the line that intersects both planes
+
+		(a1, b1, _) = self.n
+		(a2, b2, _) = plane.n
+
+		mat = np.array([
+			[a1, a2],
+			[b1, b2]
+		])
+
+		# Find X and Y coordinates of the point
+		res = np.linalg.inv(mat) @ np.array([self.d, plane.d])
+
+		# Add the Z coordinate of 0 to the point
+		res = np.concatenate((res, np.array([0.], dtype=np.float64)), axis=0)
+
+		return res
 
 	@staticmethod
 	def get_rotation_matrix_about_point(theta_rad, point, axis = "Z"):
@@ -118,6 +139,21 @@ def main():
 	R4 = Plane.get_rotation_matrix_about_point(-4, np.array([4, 5, 6]), "Z")
 
 	assert_array_almost_equal(np.identity(4), R4 @ (R3 @ (R2 @ R1)))
+
+	plane2 = Plane(
+		np.array([0, 0, 0]),
+		np.array([1, 0, 0]),
+		np.array([0, 0, 1])
+	)
+
+	plane3 = Plane(
+		np.array([0, 0, 0]),
+		np.array([0, 1, 0]),
+		np.array([0, 0, 1])
+	)
+
+	res = plane2.calculate_intersection_point_between_planes(plane3)
+	assert_array_almost_equal(res, np.array([0, 0, 0]))
 
 
 if __name__ == "__main__":
