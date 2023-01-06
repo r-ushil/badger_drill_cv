@@ -1,6 +1,7 @@
 calib3d
+click
 Flask==2.1.0
 google-cloud-storage
 gunicorn==20.1.0
 mediapipe
-opencv-python
+opencv-contrib-python

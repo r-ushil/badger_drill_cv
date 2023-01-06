@@ -1,4 +1,16 @@
 from numpy import array, average, float64, ndarray
+from cv2 import imread, IMREAD_GRAYSCALE
+
+from cv2.xfeatures2d import SURF_create # pyright: reportMissingImports=false
+
+class KatchetBoardFaceDetector():
+    def __init__(self, hessian_threshold):
+        detector = SURF_create(hessianThreshold=hessian_threshold)
+        face_img = imread("assets/katchet_face.png", IMREAD_GRAYSCALE)
+
+        face_keypoints, face_descriptors = self.__detector.detectAndCompute(face_img, None)
+
+katchet_face_detector = KatchetBoardFaceDetector()
 
 KATCHET_BOX_TOP_L = [.0, -.05, .45]
 KATCHET_BOX_TOP_R = [.58, -.05, .45]
