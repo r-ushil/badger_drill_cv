@@ -70,8 +70,8 @@ class Plane:
 		(a2, b2, _) = plane.n
 
 		mat = np.array([
-			[a1, a2],
-			[b1, b2]
+			[a1, b1],
+			[a2, b2]
 		])
 
 		# Find X and Y coordinates of the point
