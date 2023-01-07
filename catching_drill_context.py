@@ -151,8 +151,8 @@ class CatchingDrillContext():
 			zip(left_heel_2d_positions, right_heel_2d_positions, point_projectors):
 
 			if point_projector is None:
-				self.left_heel_3d_positions.append(None)
-				self.right_heel_3d_positions.append(None)
+				left_heel_3d_positions.append(None)
+				right_heel_3d_positions.append(None)
 				continue
 			
 			if left_heel_2d_position is not None:
