@@ -82,6 +82,22 @@ class Plane:
 
 		return res
 	
+	def decompose_intersecting_point(self, point):
+		assert point.shape == (3, )
+		assert self.intersects_with_point(point)
+		TOLERANCE = 0.000001
+
+		mat_inv = np.linalg.inv(np.array([self.p, self.v1, self.v2]).T)
+		
+		res = mat_inv @ point
+
+		v1_coeff, v2_coeff = res[1], res[2]
+
+		assert np.abs(res[0] - 1) < TOLERANCE
+
+		return v1_coeff, v2_coeff 
+
+	
 	@staticmethod
 	def multiply_orthogonal_matrix_by_non_orthogonal_vec(mat, vec):
 		assert mat.shape == (4, 4)
@@ -180,7 +196,15 @@ def main():
 
 	res = Plane.multiply_orthogonal_matrix_by_non_orthogonal_vec(affine, vec)
 
-	print(res)
+	k = 2.3
+	v = 6.7
+	point_on_plane = plane.p + (k * plane.v1) + (v * plane.v2)
+	k_found, v_found = plane.decompose_intersecting_point(point_on_plane)
+
+	TOLERANCE = 0.00001
+	assert (np.abs(k - k_found) < TOLERANCE and 
+			np.abs(v - v_found) < TOLERANCE)
+
 
 
 if __name__ == "__main__":
