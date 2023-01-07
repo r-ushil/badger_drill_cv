@@ -277,8 +277,9 @@ class CatchingDrillContext():
 				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 				primary_label="Trajectory plane points",
 				points_3d_multiple=trajectory_plane_points,
-				colour=(0, 0, 255),
-				show_label=False
+				colour=(0, 255, 255),
+				show_label=False,
+				point_size=4
 			))
 	
 	@staticmethod
@@ -294,8 +295,9 @@ class CatchingDrillContext():
 				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 				primary_label="X plane points",
 				points_3d_multiple=x_plane_points,
-				colour=(0, 255, 0),
-				show_label=False
+				colour=(0, 255, 255),
+				show_label=False,
+				point_size=4
 			))
 
 	@staticmethod
@@ -311,8 +313,9 @@ class CatchingDrillContext():
 				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
 				primary_label="True trajectory plane points",
 				points_3d_multiple=true_trajectory_plane_points,
-				colour=(0, 255, 0),
-				show_label=False
+				colour=(0, 255, 255),
+				show_label=False,
+				point_size=4
 			))
 
 	@staticmethod
@@ -395,5 +398,5 @@ class CatchingDrillContext():
 			primary_label="Ball 3D positions",
 			points_3d_multiple=copy(ball_3d_positions_so_far),
 			colour=(0, 0, 255),
-			show_label=False
+			show_label=True
 		))
