@@ -42,31 +42,31 @@ class CatchingDrillContext():
 	
 	def generate_augmented_data(self, video_dims):
 		self.left_heel_2d_positions, self.right_heel_2d_positions = \
-			self.generate_heel_2d_positions(video_dims, self.pose_landmarkss)
+			CatchingDrillContext.generate_heel_2d_positions(video_dims, self.pose_landmarkss)
 
 		self.left_heel_3d_positions, self.right_heel_3d_positions = \
-			self.generate_heel_3d_positions(
+			CatchingDrillContext.generate_heel_3d_positions(
 				self.left_heel_2d_positions, 
 				self.right_heel_2d_positions, 
 				self.point_projectors
 			)
 		
-		self.trajectory_plane_fixed = self.generate_trajectory_plane()
-		self.x_plane_fixed = self.generate_x_plane()
-		self.ground_plane_fixed = self.generate_ground_plane()
+		self.trajectory_plane_fixed = CatchingDrillContext.generate_trajectory_plane()
+		self.x_plane_fixed = CatchingDrillContext.generate_x_plane()
+		self.ground_plane_fixed = CatchingDrillContext.generate_ground_plane()
 
 		self.angle_between_planes_fixed = \
-			self.generate_angle_between_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
+			CatchingDrillContext.generate_angle_between_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
 		self.intersection_point_of_planes_fixed = \
-			self.generate_intersection_point_of_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
+			CatchingDrillContext.generate_intersection_point_of_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
 
-		self.ball_3d_positions = self.generate_ball_3d_positions(
+		self.ball_3d_positions = CatchingDrillContext.generate_ball_3d_positions(
 			self.ball_2d_positions, 
 			self.trajectory_plane_fixed, 
 			self.point_projectors
 		)
 
-		self.ball_decomposed_positions = self.decompose_ball_3d_positions(
+		self.ball_decomposed_positions = CatchingDrillContext.decompose_ball_3d_positions(
 			self.ball_3d_positions,
 			self.trajectory_plane_fixed
 		)
@@ -117,7 +117,8 @@ class CatchingDrillContext():
 	
 	# Additional data generation functions below -------------------------------
 	
-	def generate_heel_2d_positions(self, video_dims, pose_landmarkss):
+	@staticmethod
+	def generate_heel_2d_positions(video_dims, pose_landmarkss):
 		assert len(pose_landmarkss) > 0
 
 		left_heel_2d_positions = []
@@ -143,7 +144,8 @@ class CatchingDrillContext():
 		
 		return left_heel_2d_positions, right_heel_2d_positions
 	
-	def generate_heel_3d_positions(self, left_heel_2d_positions, right_heel_2d_positions, point_projectors):
+	@staticmethod
+	def generate_heel_3d_positions(left_heel_2d_positions, right_heel_2d_positions, point_projectors):
 		
 		left_heel_3d_positions = []
 		right_heel_3d_positions = []
@@ -167,7 +169,8 @@ class CatchingDrillContext():
 		
 		return left_heel_3d_positions, right_heel_3d_positions
 	
-	def generate_trajectory_plane(self):
+	@staticmethod
+	def generate_trajectory_plane():
 		# TODO: Process ball positions, pick the 3d hand position where the ball 
 		# is intersecting with the hand to construct the trajectory plane
 
@@ -192,27 +195,32 @@ class CatchingDrillContext():
 			np.array([0, 0.25, -1])
 		)
 	
-	def generate_angle_between_planes(self, trajectory_plane, x_plane):
+	@staticmethod
+	def generate_angle_between_planes(trajectory_plane, x_plane):
 		return np.pi - trajectory_plane.calculate_angle_with_plane(x_plane)
 
-	def generate_intersection_point_of_planes(self, x_plane, trajectory_plane):
+	@staticmethod
+	def generate_intersection_point_of_planes(x_plane, trajectory_plane):
 		return trajectory_plane.calculate_intersection_point_between_planes(x_plane).reshape((3, 1))
 
-	def generate_x_plane(self):
+	@staticmethod
+	def generate_x_plane():
 		return Plane(
 			np.array([0, 0, 0]),
 			np.array([1, 0, 0]),
 			np.array([1, 0, 1])
 		)
 
-	def generate_ground_plane(self):
+	@staticmethod
+	def generate_ground_plane():
 		return Plane(
 			np.array([0, 0, 0]),
 			np.array([1, 0, 0]),
 			np.array([0, 1, 0])
 		)
 	
-	def generate_circle_points(self):
+	@staticmethod
+	def generate_circle_points():
 		circle_initial_point = np.array([2, 0, 0])
 		point_rotation_matrix = \
 			Plane.get_rotation_matrix_about_point(np.pi / 4, np.array([0, 0, 0]), axis="Z")
@@ -223,9 +231,10 @@ class CatchingDrillContext():
 			circle_points.append(np.delete(current_point, -1))
 			current_point = point_rotation_matrix @ current_point 
 		
-		self.circle_points_fixed = circle_points
+		return circle_points
 	
-	def generate_ball_3d_positions(self, ball_2d_positions, trajectory_plane, point_projectors):
+	@staticmethod
+	def generate_ball_3d_positions(ball_2d_positions, trajectory_plane, point_projectors):
 		ball_3d_positions = []
 		for point_projector, ball_2d_position in zip(point_projectors, ball_2d_positions):
 			if ball_2d_position is None or point_projector is None:
@@ -238,7 +247,8 @@ class CatchingDrillContext():
 		
 		return ball_3d_positions
 
-	def decompose_ball_3d_positions(self, ball_3d_positions, trajectory_plane):
+	@staticmethod
+	def decompose_ball_3d_positions(ball_3d_positions, trajectory_plane):
 		ball_decomposed_positions = []
 		for ball_3d_position in ball_3d_positions:
 			if ball_3d_position is None:
