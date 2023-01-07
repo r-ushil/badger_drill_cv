@@ -87,7 +87,7 @@ class FrameEffect:
 			wy = point[1]
 			wz = point[2]
 		
-			return f"({np.around(wx, 2)}, {np.around(wy, 2)}, {np.around(wz, 2)})"
+			return f"({np.around(wx, 1)}, {np.around(wy, 1)}, {np.around(wz, 1)})"
 		else:
 			if point.shape == (2, 1):
 				point = point.reshape((2, ))
@@ -95,7 +95,7 @@ class FrameEffect:
 			wx = point[0]
 			wy = point[1]
 		
-			return f"({np.around(wx, 2)}, {np.around(wy, 2)}"
+			return f"({np.around(wx, 1)}, {np.around(wy, 1)}"
 
 
 
