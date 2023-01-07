@@ -41,15 +41,35 @@ class CatchingDrillContext():
 		self.frame_effectss = []
 	
 	def generate_augmented_data(self, video_dims):
-		self.generate_heel_2d_positions(video_dims)
-		self.generate_heel_3d_positions()
-		self.generate_trajectory_plane()
-		self.generate_x_plane()
-		self.generate_ground_plane()
-		self.generate_angle_between_planes()
-		self.generate_intersection_point_of_planes()
-		self.generate_ball_3d_positions()
-		self.decompose_ball_3d_positions()
+		self.left_heel_2d_positions, self.right_heel_2d_positions = \
+			self.generate_heel_2d_positions(video_dims, self.pose_landmarkss)
+
+		self.left_heel_3d_positions, self.right_heel_3d_positions = \
+			self.generate_heel_3d_positions(
+				self.left_heel_2d_positions, 
+				self.right_heel_2d_positions, 
+				self.point_projectors
+			)
+		
+		self.trajectory_plane_fixed = self.generate_trajectory_plane()
+		self.x_plane_fixed = self.generate_x_plane()
+		self.ground_plane_fixed = self.generate_ground_plane()
+
+		self.angle_between_planes_fixed = \
+			self.generate_angle_between_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
+		self.intersection_point_of_planes_fixed = \
+			self.generate_intersection_point_of_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
+
+		self.ball_3d_positions = self.generate_ball_3d_positions(
+			self.ball_2d_positions, 
+			self.trajectory_plane_fixed, 
+			self.point_projectors
+		)
+
+		self.ball_decomposed_positions = self.decompose_ball_3d_positions(
+			self.ball_3d_positions,
+			self.trajectory_plane_fixed
+		)
 		# self.generate_circle_points()
 
 	def generate_frame_effects(self):
@@ -97,14 +117,16 @@ class CatchingDrillContext():
 	
 	# Additional data generation functions below -------------------------------
 	
-	def generate_heel_2d_positions(self, video_dims):
-		assert len(self.pose_landmarkss) > 0
+	def generate_heel_2d_positions(self, video_dims, pose_landmarkss):
+		assert len(pose_landmarkss) > 0
 
-		for pose_landmarks in self.pose_landmarkss:
+		left_heel_2d_positions = []
+		right_heel_2d_positions = []
+		for pose_landmarks in pose_landmarkss:
 
 			if pose_landmarks is None:
-				self.left_heel_2d_positions.append(None)
-				self.right_heel_2d_positions.append(None)
+				left_heel_2d_positions.append(None)
+				right_heel_2d_positions.append(None)
 				continue
 
 			left_heel = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
@@ -116,13 +138,17 @@ class CatchingDrillContext():
 			sx_right_foot = right_heel.x * vid_w
 			sy_right_foot = right_heel.y * vid_h
 
-			self.left_heel_2d_positions.append(np.array([sx_left_foot, sy_left_foot]))
-			self.right_heel_2d_positions.append(np.array([sx_right_foot, sy_right_foot]))
-	
-	def generate_heel_3d_positions(self):
+			left_heel_2d_positions.append(np.array([sx_left_foot, sy_left_foot]))
+			right_heel_2d_positions.append(np.array([sx_right_foot, sy_right_foot]))
 		
+		return left_heel_2d_positions, right_heel_2d_positions
+	
+	def generate_heel_3d_positions(self, left_heel_2d_positions, right_heel_2d_positions, point_projectors):
+		
+		left_heel_3d_positions = []
+		right_heel_3d_positions = []
 		for left_heel_2d_position, right_heel_2d_position, point_projector in \
-			zip(self.left_heel_2d_positions, self.right_heel_2d_positions, self.point_projectors):
+			zip(left_heel_2d_positions, right_heel_2d_positions, point_projectors):
 
 			if point_projector is None:
 				self.left_heel_3d_positions.append(None)
@@ -130,63 +156,57 @@ class CatchingDrillContext():
 				continue
 			
 			if left_heel_2d_position is not None:
-				self.left_heel_3d_positions.append(point_projector.project_2d_to_3d(left_heel_2d_position, Z=0))
+				left_heel_3d_positions.append(point_projector.project_2d_to_3d(left_heel_2d_position, Z=0))
 			else:
-				self.left_heel_3d_positions.append(None)
+				left_heel_3d_positions.append(None)
 
 			if right_heel_2d_position is not None:
-				self.right_heel_3d_positions.append(point_projector.project_2d_to_3d(right_heel_2d_position, Z=0))
+				right_heel_3d_positions.append(point_projector.project_2d_to_3d(right_heel_2d_position, Z=0))
 			else:
-				self.right_heel_3d_positions.append(None)
+				right_heel_3d_positions.append(None)
+		
+		return left_heel_3d_positions, right_heel_3d_positions
 	
 	def generate_trajectory_plane(self):
 		# TODO: Process ball positions, pick the 3d hand position where the ball 
 		# is intersecting with the hand to construct the trajectory plane
 
 		# Good for video 849
-		# self.trajectory_plane_fixed = Plane(
+		# return Plane(
 		# 	np.array([0, 0.25, 0]),
 		# 	np.array([12, -2, 0]),
 		# 	np.array([0, 0.25, -1])
 		# )
 
 		# Good for 902
-		# self.trajectory_plane_fixed = Plane(
+		# return Plane(
 		# 	np.array([0, 0.25, 0]),
 		# 	np.array([13, 4.5, 0]),
 		# 	np.array([0, 0.25, -1])
 		# )
 
 		# Good for 101
-		self.trajectory_plane_fixed = Plane(
+		return Plane(
 			np.array([0, 0.25, 0]),
 			np.array([10, -0.15, 0]),
 			np.array([0, 0.25, -1])
 		)
 	
-	def generate_angle_between_planes(self):
-		assert self.x_plane_fixed is not None
-		assert self.trajectory_plane_fixed is not None
+	def generate_angle_between_planes(self, trajectory_plane, x_plane):
+		return np.pi - trajectory_plane.calculate_angle_with_plane(x_plane)
 
-		self.angle_between_planes_fixed = \
-			np.pi - self.trajectory_plane_fixed.calculate_angle_with_plane(self.x_plane_fixed)
-
-	def generate_intersection_point_of_planes(self):
-		assert self.x_plane_fixed is not None
-		assert self.trajectory_plane_fixed is not None
-
-		self.intersection_point_of_planes_fixed = \
-			self.trajectory_plane_fixed.calculate_intersection_point_between_planes(self.x_plane_fixed).reshape((3, 1))
+	def generate_intersection_point_of_planes(self, x_plane, trajectory_plane):
+		return trajectory_plane.calculate_intersection_point_between_planes(x_plane).reshape((3, 1))
 
 	def generate_x_plane(self):
-		self.x_plane_fixed = Plane(
+		return Plane(
 			np.array([0, 0, 0]),
 			np.array([1, 0, 0]),
 			np.array([1, 0, 1])
 		)
 
 	def generate_ground_plane(self):
-		self.ground_plane_fixed = Plane(
+		return Plane(
 			np.array([0, 0, 0]),
 			np.array([1, 0, 0]),
 			np.array([0, 1, 0])
@@ -205,28 +225,32 @@ class CatchingDrillContext():
 		
 		self.circle_points_fixed = circle_points
 	
-	def generate_ball_3d_positions(self):
-		for point_projector, ball_2d_position in zip(self.point_projectors, self.ball_2d_positions):
+	def generate_ball_3d_positions(self, ball_2d_positions, trajectory_plane, point_projectors):
+		ball_3d_positions = []
+		for point_projector, ball_2d_position in zip(point_projectors, ball_2d_positions):
 			if ball_2d_position is None or point_projector is None:
-				self.ball_3d_positions.append(None)
+				ball_3d_positions.append(None)
 				continue
 			
-			ball_3d_position = point_projector.project_2d_to_3d_plane(ball_2d_position, self.trajectory_plane_fixed)	
+			ball_3d_position = point_projector.project_2d_to_3d_plane(ball_2d_position, trajectory_plane)	
 
-			self.ball_3d_positions.append(ball_3d_position)
+			ball_3d_positions.append(ball_3d_position)
+		
+		return ball_3d_positions
 
-	def decompose_ball_3d_positions(self):
-		assert self.trajectory_plane_fixed is not None
-
-		for ball_3d_position in self.ball_3d_positions:
+	def decompose_ball_3d_positions(self, ball_3d_positions, trajectory_plane):
+		ball_decomposed_positions = []
+		for ball_3d_position in ball_3d_positions:
 			if ball_3d_position is None:
-				self.ball_decomposed_positions.append(None)
+				ball_decomposed_positions.append(None)
 				continue
 
 			v1_coeff, v2_coeff = \
-				self.trajectory_plane_fixed.decompose_intersecting_point(ball_3d_position.reshape((3, )))
+				trajectory_plane.decompose_intersecting_point(ball_3d_position.reshape((3, )))
 				
-			self.ball_decomposed_positions.append(np.array([v1_coeff, v2_coeff]))
+			ball_decomposed_positions.append(np.array([v1_coeff, v2_coeff]))
+		
+		return ball_decomposed_positions
 	
 	# Frame effect augmentation below -----------------------------------------------
 		
