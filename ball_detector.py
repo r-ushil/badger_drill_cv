@@ -21,8 +21,8 @@ class BallDetector():
 		frame = augmented_frame.frame_hsv()
 
 		# define range of blue color in HSV (red turns to blue in HSV)
-		lower_blue = array([160, 160, 90])
-		upper_blue = array([200, 160, 135])
+		lower_blue = array([160, 155, 90])
+		upper_blue = array([200, 165, 135])
 
 		# Threshold the HSV image to get only blue colors
 		mask = inRange(frame, lower_blue, upper_blue)
