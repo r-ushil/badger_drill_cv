@@ -28,6 +28,7 @@ class CatchingDrillContext():
 		self.right_heel_3d_positions = []
 
 		self.ball_3d_positions = []
+		self.ball_decomposed_positions= []
 
 		# Remain the same throughout the drill
 		self.x_plane_fixed = None
@@ -48,6 +49,7 @@ class CatchingDrillContext():
 		self.generate_angle_between_planes()
 		self.generate_intersection_point_of_planes()
 		self.generate_ball_3d_positions()
+		self.decompose_ball_3d_positions()
 		# self.generate_circle_points()
 
 	def generate_frame_effects(self):
@@ -204,9 +206,6 @@ class CatchingDrillContext():
 		self.circle_points_fixed = circle_points
 	
 	def generate_ball_3d_positions(self):
-		assert self.angle_between_planes_fixed is not None
-		assert self.intersection_point_of_planes_fixed is not None
-
 		for point_projector, ball_2d_position in zip(self.point_projectors, self.ball_2d_positions):
 			if ball_2d_position is None or point_projector is None:
 				self.ball_3d_positions.append(None)
@@ -215,6 +214,19 @@ class CatchingDrillContext():
 			ball_3d_position = point_projector.project_2d_to_3d_plane(ball_2d_position, self.trajectory_plane_fixed)	
 
 			self.ball_3d_positions.append(ball_3d_position)
+
+	def decompose_ball_3d_positions(self):
+		assert self.trajectory_plane_fixed is not None
+
+		for ball_3d_position in self.ball_3d_positions:
+			if ball_3d_position is None:
+				self.ball_decomposed_positions.append(None)
+				continue
+
+			v1_coeff, v2_coeff = \
+				self.trajectory_plane_fixed.decompose_intersecting_point(ball_3d_position.reshape((3, )))
+				
+			self.ball_decomposed_positions.append(np.array([v1_coeff, v2_coeff]))
 	
 	# Frame effect augmentation below -----------------------------------------------
 		
