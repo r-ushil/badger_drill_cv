@@ -1,11 +1,12 @@
 from copy import deepcopy
 from cv2 import solvePnPRansac, Rodrigues
-from calib3d import Calib, Point2D, Point3D
+from calib3d import Calib, Point2D, Point3D, line_plane_intersection
 from numpy import append, array, concatenate, float64, matmul, ndarray, reshape, zeros
 from typing import Optional, Tuple
 import numpy as np
 
 from katchet_board import KatchetBoard
+from plane import Plane
 
 class CameraIntrinsics:
     __focal_len: float
@@ -157,6 +158,25 @@ class PointProjector:
         ])
 
         return reshape(point_norm, (2,))
+    
+    @assert_localised
+    def project_2d_to_3d_plane(
+        self,
+        point_2d: ndarray[(2, 1), float64],
+        plane: Plane
+    ) -> ndarray[(3, 1), float64]:
+
+        point_2d = Point2D(point_2d)
+
+        assert isinstance(point_2d, Point2D), "Wrong argument type '{}'. Expected {}".format(type(point_2d), Point2D)
+
+        point_2d = self.__cam_calib.rectify(point_2d)
+        X = Point3D(self.__cam_calib.Pinv @ point_2d.H)
+        d = (X - self.__cam_calib.C)
+
+        point_3d = line_plane_intersection(self.__cam_calib.C, d, Point3D(plane.p), plane.n)
+
+        return point_3d.reshape((3, 1)).astype('float64')
 
     @assert_localised
     def project_2d_to_3d(
