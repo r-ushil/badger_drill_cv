@@ -56,62 +56,9 @@ class CatchingJudge(Judge):
 			point_projector = PointProjector.initialize_from_katchet_face_pts(self.__cam_intrinsics, katchet_face_pts)
 		drill_context.point_projectors.append(point_projector)
 
-		ball_position = self.detect_ball(augmented_frame)
-		drill_context.ball_2d_positions.append(ball_position)
+		drill_context.ball_detector.process(augmented_frame)
 
 		drill_context.pose_landmarkss.append(self.detect_pose(augmented_frame))
-
-	def detect_ball(self, augmented_frame: AugmentedFrame):
-		frame = augmented_frame.frame_hsv()
-
-		# define range of blue color in HSV (red turns to blue in HSV)
-		lower_blue = np.array([160, 160, 100])
-		upper_blue = np.array([190, 160, 135])
-
-		# Threshold the HSV image to get only blue colors
-		mask = cv2.inRange(frame, lower_blue, upper_blue)
-
-		# use morphology to remove noise
-		kernel = np.ones((3, 3), np.uint8)
-		mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernel, iterations=5)
-
-		# find the circle blobs in the mask
-		contours, _ = cv2.findContours(
-			mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-		detected = []
-
-		for _, c in enumerate(contours):
-			# get circle area
-			area = cv2.contourArea(c)
-
-			# get circle perimeter
-			perimeter = cv2.arcLength(c, True)
-
-			# get circlularity
-			circularity = 4 * np.pi * (area / (perimeter * perimeter))
-
-			min_circularity = 0.6
-			min_area = 30
-
-			(x, y), radius = cv2.minEnclosingCircle(c)
-
-			centre = (int(x), int(y))
-			radius = int(radius)
-
-			# add blob information if exceeds thresholds
-			if circularity > min_circularity and area > min_area:
-				detected.append((area, centre, radius))
-
-		# sort by area
-		detected.sort(key=lambda x: x[0], reverse=True)
-
-		# draw the smallest circle
-		if len(detected) > 0:
-			(_, center, _) = detected[0]
-			return center
-		else:
-			return None
 
 	def detect_pose(self, augmented_frame: AugmentedFrame):
 		return self.pose_estimator.process(augmented_frame.frame_rgb()).pose_landmarks
@@ -203,6 +150,13 @@ class CatchingJudge(Judge):
 									lineType=cv2.LINE_AA,
 								)
 								label_counter += 1
+			else:
+				label_counter = 1
+				for effect in frame_effects:
+					match effect.frame_effect_type:
+						case FrameEffectType.POINTS_2D_MULTIPLE:
+							for point_2d in effect.points_2d_multiple:
+								CatchingJudge.__label_2d_point(point_2d, frame, effect.display_label, effect.show_label, colour=effect.colour)
 
 			annotated_frames.append(frame)
 

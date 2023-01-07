@@ -3,6 +3,7 @@ import numpy as np
 
 from copy import copy
 
+from ball_detector import BallDetector
 from frame_effect import FrameEffect, FrameEffectType
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from plane import Plane
@@ -12,6 +13,7 @@ mp_pose = mp.solutions.pose
 
 class CatchingDrillContext():
 	ball_2d_positions: list
+	ball_detector: BallDetector
 
 	def __init__(self) -> None:
 		# Exist per frame
@@ -19,8 +21,8 @@ class CatchingDrillContext():
 		self.katchet_faces = []
 		self.point_projectors = []
 		self.pose_landmarkss = []
-		self.ball_2d_positions = []
 		self.ball_2d_filtered_positions = []
+		self.ball_detector = BallDetector()
 
 		self.left_heel_2d_positions = []
 		self.right_heel_2d_positions = []
@@ -44,11 +46,10 @@ class CatchingDrillContext():
 		self.frame_effectss = []
 	
 	def generate_augmented_data(self, video_dims):
-
 		(self.ball_2d_filtered_positions, 
 		 self.first_trajectory_change_2d_position, 
 		 self.last_trajectory_change_2d_position) = \
-			CatchingDrillContext.filter_ball_2d_positions(self.ball_2d_positions)
+			CatchingDrillContext.filter_ball_2d_positions(self.ball_detector.ball_positions)
 		
 		self.left_heel_2d_positions, self.right_heel_2d_positions = \
 			CatchingDrillContext.generate_heel_2d_positions(video_dims, self.pose_landmarkss)
@@ -103,7 +104,7 @@ class CatchingDrillContext():
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
 				self.pose_landmarkss,
-				self.ball_2d_positions,
+				self.ball_detector.ball_positions,
 				self.ball_3d_positions
 			):
 
