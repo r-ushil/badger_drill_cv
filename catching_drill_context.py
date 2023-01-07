@@ -212,24 +212,7 @@ class CatchingDrillContext():
 				self.ball_3d_positions.append(None)
 				continue
 			
-			# TODO: Ensure these rotation matrices are around the correct axis
-			rot_mat = Plane.get_rotation_matrix_about_point(
-				self.angle_between_planes_fixed,
-				self.intersection_point_of_planes_fixed.reshape((3, ))
-			)
-
-			rot_mat_inv = Plane.get_rotation_matrix_about_point(
-				-self.angle_between_planes_fixed,
-				self.intersection_point_of_planes_fixed.reshape((3, ))
-			)
-			
-			rotated_point_projector = point_projector.create_rotated_camera(rot_mat)
-
-			# TODO: Ensure that this axis is correct
-			ball_3d_position_rotated = rotated_point_projector.project_2d_to_3d(ball_2d_position, X=0)	
-
-			# TODO: Ensure that this rotation matrix is multiplied in the correct order
-			ball_3d_position = Plane.multiply_orthogonal_matrix_by_non_orthogonal_vec(rot_mat_inv, ball_3d_position_rotated)
+			ball_3d_position = point_projector.project_2d_to_3d_plane(ball_2d_position, self.trajectory_plane_fixed)	
 
 			self.ball_3d_positions.append(ball_3d_position)
 	
