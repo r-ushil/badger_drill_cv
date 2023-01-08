@@ -44,6 +44,10 @@ class CatchingDrillContext():
 		self.last_trajectory_change_2d_position = None
 
 		self.frame_effectss = []
+
+	def interpolate_missing_data(self):
+		# TODO: interpolate missing Katchetboard coordinates
+		self.ball_detector.interpolate_ball_positions()
 	
 	def generate_augmented_data(self, video_dims):
 		(self.ball_2d_filtered_positions, 
@@ -92,21 +96,21 @@ class CatchingDrillContext():
 		ball_2d_positions_so_far = []
 		ball_3d_positions_so_far = []
 
-		for (frame,
+		for (frame_num, (frame,
 			katchet_face,
 			left_heel_3d,
 			right_heel_3d,
 			pose_landmarks,
 			ball_2d_position,
-			ball_3d_position) in zip(
+			ball_3d_position)) in enumerate(zip(
 				self.frames, 
 				self.katchet_faces, 
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
 				self.pose_landmarkss,
-				self.ball_detector.ball_positions,
-				self.ball_3d_positions
-			):
+				self.ball_3d_positions,
+				self.ball_detector.get_ball_positions()
+			)):
 
 			frame_effects = []
 
@@ -133,6 +137,8 @@ class CatchingDrillContext():
 			CatchingDrillContext.add_angle_printing_frame_effect(frame_effects, self.angle_between_planes_fixed)
 			CatchingDrillContext.add_intersection_point_frame_effect(frame_effects, self.intersection_point_of_planes_fixed)
 			# CatchingDrillContext.add_circle_frame_effect(frame_effects, self.circle_points_fixed)
+
+			CatchingDrillContext.add_frame_number(frame_effects, frame_num)
 
 			self.frame_effectss.append(frame_effects)
 	
@@ -479,11 +485,22 @@ class CatchingDrillContext():
 		if ball_2d_position is not None:
 			ball_2d_positions_so_far.append(ball_2d_position)
 
+		measured_2d_ball_positions = [(x, y) for (x, y, isinterpol) in ball_2d_positions_so_far if not isinterpol]
+		interpol_2d_ball_positions = [(x, y) for (x, y, isinterpol) in ball_2d_positions_so_far if isinterpol]
+
 		frame_effects.append(FrameEffect(
 			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
-			primary_label="Ball 2D positions",
-			points_2d_multiple=copy(ball_2d_positions_so_far),
+			primary_label="Ball 2D positions (measured)",
+			points_2d_multiple=copy(measured_2d_ball_positions),
 			colour=(0, 255, 0),
+			show_label=False
+		))
+
+		frame_effects.append(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
+			primary_label="Ball 2D positions (interpol)",
+			points_2d_multiple=copy(interpol_2d_ball_positions),
+			colour=(255, 0, 0),
 			show_label=False
 		))
 
@@ -508,4 +525,13 @@ class CatchingDrillContext():
 			points_2d_multiple=[first_trajectory_change_2d_position, last_trajectory_change_2d_position],
 			colour=(0, 255, 255),
 			show_label=False
+		))
+
+	@staticmethod
+	def add_frame_number(frame_effects, frame_num):
+		frame_effects.append(FrameEffect(
+			frame_effect_type=FrameEffectType.TEXT,
+			primary_label="Frame number",
+			display_label=f"F_NUM: {frame_num}",
+			show_label=True
 		))

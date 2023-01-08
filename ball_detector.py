@@ -1,35 +1,66 @@
 from typing import Optional
 from augmented_frame import AugmentedFrame
 from cv2 import arcLength, \
+	bitwise_and, \
+	bitwise_not, \
+	bitwise_or, \
 	contourArea, \
 	minEnclosingCircle, \
 	findContours, \
 	inRange, \
 	morphologyEx, \
+	Mat, \
 	CHAIN_APPROX_SIMPLE, \
+	MORPH_ERODE, \
 	MORPH_DILATE, \
 	RETR_EXTERNAL
-from numpy import array, ones, uint8, pi
+from numpy import array, isfinite, nan, ones, pi, uint8
+from pandas import DataFrame
 
 class BallDetector():
-	ball_positions: list
+	__measured_ball_positions: list
+	__interpol_ball_positions: Optional[list]
+
+	__mask_prev_frame: Optional[Mat]
 
 	def __init__(self) -> None:
-		self.ball_positions = []
+		self.__measured_ball_positions = []
+		self.__interpol_ball_positions = None
+		self.__mask_prev_frame = None
 
 	def process(self, augmented_frame: AugmentedFrame):
 		frame = augmented_frame.frame_hsv()
 
-		# define range of blue color in HSV (red turns to blue in HSV)
-		lower_blue = array([160, 155, 90])
-		upper_blue = array([200, 165, 135])
+		# define ranges of red colors in HSV
+		# note: there are two ranges since the reds wrap around at 180.
+		lower_red_1 = array([170, 110, 80])
+		upper_red_1 = array([180, 255, 180])
 
-		# Threshold the HSV image to get only blue colors
-		mask = inRange(frame, lower_blue, upper_blue)
+		lower_red_2 = array([0, 110, 80])
+		lower_red_2 = array([5, 255, 180])
+
+		# Threshold the HSV image to get only red colours
+		mask_1 = inRange(frame, lower_red_1, upper_red_1)
+		mask_2 = inRange(frame, lower_red_2, lower_red_2)
+
+		# Combine both masks to get complete data
+		mask = bitwise_or(mask_1, mask_2)
+		mask_curr_frame = mask
+		mask_prev_frame = self.__mask_prev_frame
 
 		# use morphology to remove noise
 		kernel = ones((3, 3), uint8)
-		mask = morphologyEx(mask, MORPH_DILATE, kernel, iterations=5)
+
+		if mask_prev_frame is not None:
+			# Restrict detections to those in new areas
+			undetected_area_mask = bitwise_not(mask_prev_frame)
+			mask = bitwise_and(mask, undetected_area_mask)
+
+		mask = morphologyEx(mask, MORPH_ERODE, kernel, iterations=1)
+		mask = morphologyEx(mask, MORPH_DILATE, kernel, iterations=3)
+
+		# Store dilated mask
+		self.__mask_prev_frame = morphologyEx(mask_curr_frame, MORPH_DILATE, kernel, iterations=3)
 
 		# find the circle blobs in the mask
 		contours, _ = findContours(mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
@@ -46,8 +77,8 @@ class BallDetector():
 			# get circlularity
 			circularity = 4 * pi * (area / (perimeter * perimeter))
 
-			min_circularity = 0.6
-			min_area = 30
+			min_circularity = 0.5
+			min_area = 100
 
 			(x, y), radius = minEnclosingCircle(c)
 
@@ -58,12 +89,32 @@ class BallDetector():
 			if circularity > min_circularity and area > min_area:
 				detected.append((area, centre, radius))
 
-		# sort by area
-		detected.sort(key=lambda x: x[0], reverse=True)
-
-		# draw the smallest circle
+		# Check whether a ball was detected
 		if len(detected) > 0:
-			(_, center, _) = detected[0]
-			self.ball_positions.append(center)
+			# Pick detection with maximum area
+			(_, (x, y), _) = max(detected, key=lambda x: x[0])
+
+			# Add ball position and mark as not interpolated
+			self.__measured_ball_positions.append((x, y, False))
 		else:
-			self.ball_positions.append(None)
+			# Add dummy position for frame and mark to be interpolated
+			self.__measured_ball_positions.append((nan, nan, True))
+
+	def interpolate_ball_positions(self):
+		# Construct DataFrame of ball positions and whether they are interpolated.
+		measured_df = DataFrame(self.__measured_ball_positions)
+
+		# Interpolate ball positions using cubic spline interpolation.
+		# Note: does not extrapolate beyond the final measurement since ball could be dead or caught.
+		interpol_df = measured_df.interpolate(method="cubicspline", limit_direction='forward', limit_area='inside')
+		interpol_iter = interpol_df.itertuples(index=False, name=None)
+
+		# Reconstruct ball positions to match data structure of `ball_positions`.
+		interpol_ball_positions = [(int(x), int(y), bool(isinterpol)) if isfinite(x) and isfinite(y) else None for (x, y, isinterpol) in interpol_iter]
+
+		self.__interpol_ball_positions = interpol_ball_positions
+
+	def get_ball_positions(self):
+		assert self.__interpol_ball_positions is not None
+
+		return self.__interpol_ball_positions

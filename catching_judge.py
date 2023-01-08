@@ -37,6 +37,8 @@ class CatchingJudge(Judge):
 		for frame in self.get_frames():
 			self.process_frame(drill_context, frame)
 		
+		drill_context.interpolate_missing_data()
+
 		drill_context.generate_augmented_data(self.get_video_dims())
 		drill_context.generate_frame_effects()
 
