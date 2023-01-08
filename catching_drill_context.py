@@ -20,6 +20,7 @@ class CatchingDrillContext():
 		self.point_projectors = []
 		self.pose_landmarkss = []
 		self.ball_2d_positions = []
+		self.ball_2d_filtered_positions = []
 
 		self.left_heel_2d_positions = []
 		self.right_heel_2d_positions = []
@@ -37,10 +38,18 @@ class CatchingDrillContext():
 		self.trajectory_plane_fixed = None
 		self.angle_between_planes_fixed = None
 		self.intersection_point_of_planes_fixed = None
+		self.first_trajectory_change_2d_position = None
+		self.last_trajectory_change_2d_position = None
 
 		self.frame_effectss = []
 	
 	def generate_augmented_data(self, video_dims):
+
+		(self.ball_2d_filtered_positions, 
+		 self.first_trajectory_change_2d_position, 
+		 self.last_trajectory_change_2d_position) = \
+			CatchingDrillContext.filter_ball_2d_positions(self.ball_2d_positions)
+		
 		self.left_heel_2d_positions, self.right_heel_2d_positions = \
 			CatchingDrillContext.generate_heel_2d_positions(video_dims, self.pose_landmarkss)
 
@@ -51,6 +60,12 @@ class CatchingDrillContext():
 				self.point_projectors
 			)
 		
+		# self.first_trajectory_change_3d_position = \
+		# 	CatchingDrillContext.localise_first_trajectory_change_position(
+		# 		self.ground_plane_fixed, 
+		# 		self.first_trajectory_change_2d_position
+		# 	)
+
 		self.trajectory_plane_fixed = CatchingDrillContext.generate_trajectory_plane()
 		self.x_plane_fixed = CatchingDrillContext.generate_x_plane()
 		self.ground_plane_fixed = CatchingDrillContext.generate_ground_plane()
@@ -61,7 +76,7 @@ class CatchingDrillContext():
 			CatchingDrillContext.generate_intersection_point_of_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
 
 		self.ball_3d_positions = CatchingDrillContext.generate_ball_3d_positions(
-			self.ball_2d_positions, 
+			self.ball_2d_filtered_positions, 
 			self.trajectory_plane_fixed, 
 			self.point_projectors
 		)
@@ -99,6 +114,11 @@ class CatchingDrillContext():
 			CatchingDrillContext.add_pose_landmarks_frame_effect(frame, pose_landmarks)
 			# CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
 			CatchingDrillContext.add_ball_3d_positions_frame_effect(frame_effects, ball_3d_position, ball_3d_positions_so_far)
+			CatchingDrillContext.add_trajectory_change_2d_positions_frame_effect(
+				frame_effects, 
+				self.first_trajectory_change_2d_position, 
+				self.last_trajectory_change_2d_position
+			)
 			CatchingDrillContext.add_katchet_face_frame_effect(frame_effects, katchet_face)
 			CatchingDrillContext.add_katchet_board_points_frame_effect(frame_effects)
 
@@ -116,6 +136,38 @@ class CatchingDrillContext():
 			self.frame_effectss.append(frame_effects)
 	
 	# Additional data generation functions below -------------------------------
+
+	@staticmethod
+	def filter_ball_2d_positions(ball_2d_positions):
+		# TODO: Fill out proper logic here
+
+		# 0 to 15 is good for video 101
+		first_position_seen = 0
+		last_position_seen = 15
+
+		positions_seen = 0
+		filtered_ball_2d_positions = []
+
+		first_ball_2d_seen = None
+		last_ball_2d_seen = None
+
+		for ball_2d_position in ball_2d_positions:
+
+			if ball_2d_position is None:
+				filtered_ball_2d_positions.append(None)
+				continue
+
+			if positions_seen >= first_position_seen and positions_seen <= last_position_seen:
+				if positions_seen == first_position_seen:
+					first_ball_2d_seen = ball_2d_position
+				elif positions_seen == last_position_seen:
+					last_ball_2d_seen = ball_2d_position
+
+				filtered_ball_2d_positions.append(ball_2d_position)
+
+			positions_seen += 1
+		
+		return filtered_ball_2d_positions, first_ball_2d_seen, last_ball_2d_seen
 	
 	@staticmethod
 	def generate_heel_2d_positions(video_dims, pose_landmarkss):
@@ -445,4 +497,14 @@ class CatchingDrillContext():
 			points_3d_multiple=copy(ball_3d_positions_so_far),
 			colour=(0, 0, 255),
 			show_label=True
+		))
+	
+	@staticmethod
+	def add_trajectory_change_2d_positions_frame_effect(frame_effects, first_trajectory_change_2d_position, last_trajectory_change_2d_position):
+		frame_effects.append(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
+			primary_label="Change in trajectory points",
+			points_2d_multiple=[first_trajectory_change_2d_position, last_trajectory_change_2d_position],
+			colour=(0, 255, 255),
+			show_label=False
 		))
