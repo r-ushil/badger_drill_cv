@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 from augmented_frame import AugmentedFrame
 from cv2 import arcLength, \
@@ -118,3 +119,93 @@ class BallDetector():
 		assert self.__interpol_ball_positions is not None
 
 		return self.__interpol_ball_positions
+
+class CriticalPointType(Enum):
+	BOUNCE = 1
+	CATCH = 2
+	DROP = 3
+
+class CriticalPoint():
+	def __init__(self,point_type: CriticalPointType, frame_num: int, position_2d: tuple[int, int]) -> None:
+		self.__point_type = point_type
+		self.__frame_num = frame_num
+		self.__position_2d = position_2d
+
+	def get_type(self):
+		return self.__point_type
+
+	def get_position_2d(self):
+		return self.__position_2d
+
+class CriticalBallPointDetector():
+	def __init__(self, ball_positions, left_hand_poses_2d, right_hand_poses_2d):
+		self.__ball_positions = ball_positions
+		self.__left_hand_poses_2d = left_hand_poses_2d
+		self.__right_hand_poses_2d = right_hand_poses_2d
+
+	def get_critical_points(self):
+		from more_itertools import windowed
+		from numpy import arccos, clip, dot, pi
+		from numpy.linalg import norm
+
+		def unit(vec):
+			return vec / norm(vec)
+
+		found_bounce = False
+		frame_num_bounce = None
+
+		# Use window size 4 and then extrapolate down and find intersection point of two line segments either side
+		for (frame_num, (bp_fst, bp_snd, bp_thd)) in enumerate(windowed(self.__ball_positions, 3)):
+			if bp_fst is None or bp_snd is None or bp_thd is None:
+				continue
+
+			(bp_fst_x, bp_fst_y, _) = bp_fst
+			(bp_snd_x, bp_snd_y, _) = bp_snd
+			(bp_thd_x, bp_thd_y, _) = bp_thd
+
+			delta_fst = array([bp_fst_x - bp_snd_x, bp_fst_y - bp_snd_y])
+			delta_snd = array([bp_snd_x - bp_thd_x, bp_snd_y - bp_thd_y])
+
+			delta_fst = unit(delta_fst)
+			delta_snd = unit(delta_snd)
+
+			angle = arccos(clip(dot(delta_fst, delta_snd), -1.0, 1.0))
+
+			if angle > pi / 4:
+				frame_num_bounce = frame_num
+				yield CriticalPoint(CriticalPointType.BOUNCE, frame_num + 1, (bp_snd_x, bp_snd_y))
+				break
+
+		if frame_num_bounce is None:
+			# Ball did not bounce so no critical points
+			return
+
+		for (frame_num, (ball_pos, left_hand_pose_2d, right_hand_pose_2d)) in enumerate(zip(
+			self.__ball_positions,
+			self.__left_hand_poses_2d,
+			self.__right_hand_poses_2d
+		)):
+			if frame_num < frame_num_bounce:
+				# The ball cannot be caught before its bounced.
+				continue
+
+			if ball_pos is None:
+				# The ball position has not been detected.
+				continue
+
+			if left_hand_pose_2d is None or right_hand_pose_2d is None:
+				# Either the right hand and the left hand have not been detected, so skip
+				continue
+
+			(ball_x, ball_y, _) = ball_pos
+
+			[l_hand_x, l_hand_y] = left_hand_pose_2d
+			[r_hand_x, r_hand_y] = right_hand_pose_2d
+
+			ball_to_r_hand = array([ball_x - r_hand_x, ball_y - r_hand_y])
+			ball_to_l_hand = array([ball_x - l_hand_x, ball_y - l_hand_y])
+
+			THRESHOLD = 20
+
+			if norm(ball_to_r_hand) < THRESHOLD or norm(ball_to_l_hand) < THRESHOLD:
+				yield CriticalPoint(CriticalPointType.CATCH, frame_num, (ball_x, ball_y))

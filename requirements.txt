@@ -3,6 +3,7 @@ Flask==2.1.0
 google-cloud-storage
 gunicorn==20.1.0
 mediapipe
+more-itertools
 opencv-python==4.7.0.68
 pandas
 scipy

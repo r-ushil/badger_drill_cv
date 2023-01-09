@@ -3,7 +3,10 @@ import numpy as np
 
 from copy import copy
 
-from ball_detector import BallDetector
+from ball_detector import \
+	BallDetector, \
+	CriticalBallPointDetector, \
+	CriticalPointType
 from frame_effect import FrameEffect, FrameEffectType
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from plane import Plane
@@ -26,6 +29,9 @@ class CatchingDrillContext():
 
 		self.left_heel_2d_positions = []
 		self.right_heel_2d_positions = []
+
+		self.left_hand_2d_positions = []
+		self.right_hand_2d_positions = []
 
 		self.left_heel_3d_positions = []
 		self.right_heel_3d_positions = []
@@ -50,10 +56,13 @@ class CatchingDrillContext():
 		self.ball_detector.interpolate_ball_positions()
 	
 	def generate_augmented_data(self, video_dims):
+		self.interpolate_missing_data()
+		self.generate_hand_2d_positions(video_dims)
+
 		(self.ball_2d_filtered_positions, 
 		 self.first_trajectory_change_2d_position, 
 		 self.last_trajectory_change_2d_position) = \
-			CatchingDrillContext.filter_ball_2d_positions(self.ball_detector.ball_positions)
+			CatchingDrillContext.filter_ball_2d_positions(self.ball_detector.get_ball_positions())
 		
 		self.left_heel_2d_positions, self.right_heel_2d_positions = \
 			CatchingDrillContext.generate_heel_2d_positions(video_dims, self.pose_landmarkss)
@@ -81,7 +90,7 @@ class CatchingDrillContext():
 			CatchingDrillContext.generate_intersection_point_of_planes(self.x_plane_fixed, self.trajectory_plane_fixed)
 
 		self.ball_3d_positions = CatchingDrillContext.generate_ball_3d_positions(
-			self.ball_2d_filtered_positions, 
+			[(p[0], p[1]) if p is not None else None for p in self.ball_2d_filtered_positions],
 			self.trajectory_plane_fixed, 
 			self.point_projectors
 		)
@@ -90,6 +99,8 @@ class CatchingDrillContext():
 			self.ball_3d_positions,
 			self.trajectory_plane_fixed
 		)
+
+		self.generate_ball_critical_points()
 		# self.generate_circle_points()
 
 	def generate_frame_effects(self):
@@ -108,8 +119,8 @@ class CatchingDrillContext():
 				self.left_heel_3d_positions, 
 				self.right_heel_3d_positions,
 				self.pose_landmarkss,
+				self.ball_2d_filtered_positions,
 				self.ball_3d_positions,
-				self.ball_detector.get_ball_positions()
 			)):
 
 			frame_effects = []
@@ -140,9 +151,32 @@ class CatchingDrillContext():
 
 			CatchingDrillContext.add_frame_number(frame_effects, frame_num)
 
+			CatchingDrillContext.add_ball_2d_critical_points_frame_effect(frame_effects, self.critical_points)
+
 			self.frame_effectss.append(frame_effects)
 	
 	# Additional data generation functions below -------------------------------
+	def generate_hand_2d_positions(self, video_dims):
+		assert len(self.pose_landmarkss) > 0
+
+		for pose_landmarks in self.pose_landmarkss:
+
+			if pose_landmarks is None:
+				self.left_heel_2d_positions.append(None)
+				self.right_heel_2d_positions.append(None)
+				continue
+
+			left_hand = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_INDEX]
+			right_hand = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_INDEX]
+
+			vid_w, vid_h = video_dims
+			sx_left_hand = left_hand.x * vid_w
+			sy_left_hand = left_hand.y * vid_h
+			sx_right_hand = right_hand.x * vid_w
+			sy_right_hand = right_hand.y * vid_h
+
+			self.left_hand_2d_positions.append(np.array([sx_left_hand, sy_left_hand]))
+			self.right_hand_2d_positions.append(np.array([sx_right_hand, sy_right_hand]))
 
 	@staticmethod
 	def filter_ball_2d_positions(ball_2d_positions):
@@ -321,6 +355,12 @@ class CatchingDrillContext():
 		
 		return ball_decomposed_positions
 	
+	def generate_ball_critical_points(self):
+		ball_positions = self.ball_detector.get_ball_positions()
+		detector = CriticalBallPointDetector(ball_positions, self.left_hand_2d_positions, self.right_hand_2d_positions)
+
+		self.critical_points = list(detector.get_critical_points())
+
 	# Frame effect augmentation below -----------------------------------------------
 		
 	@staticmethod
@@ -523,6 +563,16 @@ class CatchingDrillContext():
 			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
 			primary_label="Change in trajectory points",
 			points_2d_multiple=[first_trajectory_change_2d_position, last_trajectory_change_2d_position],
+			colour=(0, 255, 0),
+			show_label=False
+		))
+
+	@staticmethod
+	def add_ball_2d_critical_points_frame_effect(frame_effects, critical_points):
+		frame_effects.append(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
+			primary_label="Ball positions",
+			points_2d_multiple=copy([cp.get_position_2d() for cp in critical_points]),
 			colour=(0, 255, 255),
 			show_label=False
 		))
