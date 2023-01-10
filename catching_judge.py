@@ -32,14 +32,13 @@ class CatchingJudge(Judge):
 		self.__cam_intrinsics = cam_intrinsics
 
 	def process_and_write_video(self):
-		drill_context = CatchingDrillContext()
+		drill_context = CatchingDrillContext(fps=self.fps)
 
 		for frame in self.get_frames():
 			self.process_frame(drill_context, frame)
-		
-		drill_context.interpolate_missing_data()
 
-		drill_context.generate_augmented_data(self.get_video_dims())
+		drill_context.interpolate_missing_data()
+		drill_context.generate_augmented_data(self.get_video_dims(), cam_intrinsics=self.__cam_intrinsics)
 		drill_context.generate_frame_effects()
 
 		for output_frame in self.generate_output_frames(drill_context):
@@ -52,11 +51,6 @@ class CatchingJudge(Judge):
 
 		katchet_face_pts = self.detect_katchet_board(augmented_frame)
 		drill_context.katchet_faces.append(katchet_face_pts)
-
-		point_projector = None
-		if katchet_face_pts is not None:
-			point_projector = PointProjector.initialize_from_katchet_face_pts(self.__cam_intrinsics, katchet_face_pts)
-		drill_context.point_projectors.append(point_projector)
 
 		drill_context.ball_detector.process(augmented_frame)
 
@@ -177,16 +171,19 @@ class CatchingJudge(Judge):
 	
 	@staticmethod
 	def __label_2d_point(point_2d: np.ndarray[(2, 1), np.float64], frame, label, show_label, colour, point_size = 10):
-		sx, sy = point_2d[0], point_2d[1]
-		cv2.circle(frame, (sx, sy), point_size, colour, -1)
-		if show_label:
-			cv2.putText(
-				frame,
-				label if label is not None else FrameEffect.generate_point_string(point_2d),
-				(sx, sy),
-				fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-				fontScale=0.5,
-				color=(255, 255, 255),
-				thickness=2,
-				lineType=cv2.LINE_AA,
-			)
+		try:
+			sx, sy = point_2d[0], point_2d[1]
+			cv2.circle(frame, (sx, sy), point_size, colour, -1)
+			if show_label:
+				cv2.putText(
+					frame,
+					label if label is not None else FrameEffect.generate_point_string(point_2d),
+					(sx, sy),
+					fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+					fontScale=0.5,
+					color=(255, 255, 255),
+					thickness=2,
+					lineType=cv2.LINE_AA,
+				)
+		except:
+			print("Failed to print")

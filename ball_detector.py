@@ -134,6 +134,9 @@ class CriticalPoint():
 	def get_type(self):
 		return self.__point_type
 
+	def get_frame_num(self):
+		return self.__frame_num
+
 	def get_position_2d(self):
 		return self.__position_2d
 
@@ -205,7 +208,7 @@ class CriticalBallPointDetector():
 			ball_to_r_hand = array([ball_x - r_hand_x, ball_y - r_hand_y])
 			ball_to_l_hand = array([ball_x - l_hand_x, ball_y - l_hand_y])
 
-			THRESHOLD = 20
+			THRESHOLD = 30
 
 			if norm(ball_to_r_hand) < THRESHOLD or norm(ball_to_l_hand) < THRESHOLD:
 				yield CriticalPoint(CriticalPointType.CATCH, frame_num, (ball_x, ball_y))
