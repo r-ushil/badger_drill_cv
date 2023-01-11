@@ -77,10 +77,6 @@ class CoverDriveJudge():
 	def process_and_write_video(self):
 		frame_present, frame = self.video_capture.read()
 
-		# create empty scores array to store scores for each frame
-		scores = np.zeros(3)
-		frames_processed = np.zeros(3)
-
 		while frame_present:
 			self.process_and_write_frame(frame)
 			frame_present, frame = self.video_capture.read()
@@ -109,6 +105,7 @@ class CoverDriveJudge():
 		print("Pre-shot stance: " + str(stance_scores[Stance.PRE_SHOT.value]))
 		print("Post-shot stance: " + str(stance_scores[Stance.POST_SHOT.value]))
 
+		stance_scores[1] = 0
 		removed_zeros = stance_scores[np.nonzero(stance_scores)]
 
 		print("\nAverage score:")
@@ -181,12 +178,22 @@ class CoverDriveJudge():
 			return None
 
 		# normalise shoulder_feet_difference to 0-1, using SHOULDER_WIDTH_THRESHOLD
-		weighting = 1 / SHOULDER_WIDTH_THRESHOLD
-		shoulder_feet_score = (SHOULDER_WIDTH_THRESHOLD - shoulder_feet_difference) * weighting
+
+		if shoulder_feet_difference > SHOULDER_WIDTH_THRESHOLD:
+			shoulder_feet_score = 0
+
+		else:
+			weighting = 1 / SHOULDER_WIDTH_THRESHOLD
+			shoulder_feet_score = (SHOULDER_WIDTH_THRESHOLD - shoulder_feet_difference) * weighting
 
 		# normalise hand_hip_displacement to 0-1, using HAND_HIP_THRESHOLD
-		weighting = 1 / HAND_HIP_THRESHOLD
-		hand_hip_score = (HAND_HIP_THRESHOLD - hand_hip_displacement) * weighting
+
+		if hand_hip_displacement > HAND_HIP_THRESHOLD:
+			hand_hip_score = 0
+		
+		else:
+			weighting = 1 / HAND_HIP_THRESHOLD
+			hand_hip_score = (HAND_HIP_THRESHOLD - hand_hip_displacement) * weighting
 
 		self.scores[Metrics.FEET_SHOULDER_WIDTH.value] += shoulder_feet_score
 		self.frames_processed[Metrics.FEET_SHOULDER_WIDTH.value] += 1
@@ -235,19 +242,54 @@ class CoverDriveJudge():
 
 
 	def score_post_shot_stance(self, landmarks):
-		head_knee_alignment = CoverDriveJudge.calculate_x_displacement(
-			landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT],
-			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
+		head_knee_alignment = CoverDriveJudge.calculate_y_displacement(
+			landmarks[mp_pose.PoseLandmark.MOUTH_LEFT],
+			landmarks[mp_pose.PoseLandmark.LEFT_KNEE],
 		)
 
-		alignment_threshold = 0.1
+		alignment_threshold = 0.4
 
 		if head_knee_alignment > alignment_threshold:
 			head_knee_score = 0
 		else:
 			weighting = 1 / alignment_threshold
 			head_knee_score = (alignment_threshold - head_knee_alignment) * weighting
-		
+
+
+		knee_angle = CoverDriveJudge.calculate_angle(
+			landmarks[mp_pose.PoseLandmark.RIGHT_HIP],
+			landmarks[mp_pose.PoseLandmark.RIGHT_KNEE],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE],
+		)
+
+
+		upper_threshold = 165
+		lower_threshold = 90
+
+		if knee_angle > upper_threshold:
+			knee_score = 0
+		elif knee_angle < lower_threshold:
+			knee_score = 1
+		else:
+			weighting = 1 / (upper_threshold - lower_threshold)
+			knee_score = (upper_threshold - knee_angle) * weighting
+
+
+		feet_displacement = CoverDriveJudge.calculate_x_displacement(
+			landmarks[mp_pose.PoseLandmark.LEFT_HEEL],
+			landmarks[mp_pose.PoseLandmark.RIGHT_HEEL],
+		)
+
+		# normalise feet_displacement to 0-1, using FEET_DISPLACEMENT_THRESHOLD
+
+		feet_displacement_threshold = 0.35
+		if feet_displacement > feet_displacement_threshold:
+			feet_displacement_score = 1
+		else: 
+			weighting = 1 / feet_displacement_threshold
+			feet_displacement_score = (feet_displacement_threshold - feet_displacement) * weighting
+
+
 		# angle is between 90 and 180 degrees, 90 is ideal
 		left_arm_angle = CoverDriveJudge.calculate_angle(
 			landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER],
@@ -267,10 +309,30 @@ class CoverDriveJudge():
 		right_arm_score = (right_arm_angle - 90) * weighting
 		elbow_angles_score = (left_arm_score + right_arm_score) / 2
 
-		self.scores[Metrics.HEAD_KNEE_ALIGNMENT.value] += head_knee_score
+
+		knee_elbow_distance = CoverDriveJudge.calculate_y_displacement(
+			landmarks[mp_pose.PoseLandmark.LEFT_HIP],
+			landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW],
+		)
+
+
+		upper_threshold = 0.2
+		lower_threshold = 0.1
+
+		if knee_elbow_distance > upper_threshold:
+			knee_elbow_score = 0
+
+		elif knee_elbow_distance < lower_threshold:
+			knee_elbow_score = 1
+		else:
+			weighting = 1 / (upper_threshold - lower_threshold)
+			knee_elbow_score = (upper_threshold - knee_elbow_distance) * weighting
+
+
+		self.scores[Metrics.HEAD_KNEE_ALIGNMENT.value] += (head_knee_score + knee_score + feet_displacement_score) / 3
 		self.frames_processed[Metrics.HEAD_KNEE_ALIGNMENT.value] += 1
 
-		self.scores[Metrics.ELBOW_ANGLES.value] += elbow_angles_score
+		self.scores[Metrics.ELBOW_ANGLES.value] += (elbow_angles_score + knee_elbow_score) / 2
 		self.frames_processed[Metrics.ELBOW_ANGLES.value] += 1
 	
 
