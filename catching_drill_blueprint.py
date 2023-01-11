@@ -22,10 +22,10 @@ def process_catching_drill_video():
 	with CatchingJudge(obj_signed_url, no_output=True) as judge:
 		result = judge.process_and_write_video()
 
-		if result.error is not None:
+		if result.err is not None:
 			return jsonify(
-				error_code=result.get_error_code(),
-				error_message=result.get_error_message(),
+				error_code=result.err.get_error_code(),
+				error_message=result.err.get_error_message(),
 			), 400
 
 		return jsonify(
