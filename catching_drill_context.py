@@ -126,13 +126,26 @@ class CatchingDrillContext():
 				self.video_dims
 			)
 
-		# self.first_trajectory_change_3d_position = \
-		# 	CatchingDrillContext.localise_first_trajectory_change_position(
-		# 		self.ground_plane_fixed,
-		# 		self.first_trajectory_change_2d_position
-		# 	)
+		self.first_trajectory_change_3d_position = \
+			CatchingDrillContext.localise_first_trajectory_change_position(
+				self.first_trajectory_change_2d_position,
+				self.point_projectors[bounce_pt.get_frame_num()]
+			)
 
-		self.trajectory_plane_fixed = CatchingDrillContext.generate_trajectory_plane()
+		self.last_trajectory_change_3d_position = \
+			CatchingDrillContext.localise_last_trajectory_change_position(
+				self.last_trajectory_change_2d_position,
+				self.pose_landmarkss[catch_frame].landmark[mp_pose.PoseLandmark.LEFT_INDEX],
+				self.pose_landmarkss[catch_frame].landmark[mp_pose.PoseLandmark.RIGHT_INDEX],
+				self.left_index_3d_positions[catch_frame],
+				self.right_index_3d_positions[catch_frame]
+			)
+
+		self.trajectory_plane_fixed = CatchingDrillContext.generate_trajectory_plane(
+			self.first_trajectory_change_3d_position.reshape((3, )),
+			self.last_trajectory_change_3d_position.reshape((3, ))
+		)
+
 		self.x_plane_fixed = CatchingDrillContext.generate_x_plane()
 		self.ground_plane_fixed = CatchingDrillContext.generate_ground_plane()
 
@@ -201,9 +214,9 @@ class CatchingDrillContext():
 
 			# TODO: Add frame effect for pose landmarks rather than directly
 			# annotating the frame
-			CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
-			# CatchingDrillContext.add_ball_3d_positions_frame_effect(
-			# 	frame_effects, ball_3d_position, ball_3d_positions_so_far)
+			# CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
+			CatchingDrillContext.add_ball_3d_positions_frame_effect(
+				frame_effects, ball_3d_position, ball_3d_positions_so_far)
 			# CatchingDrillContext.add_trajectory_change_2d_positions_frame_effect(
 			# 	frame_effects,
 			# 	self.first_trajectory_change_2d_position,
@@ -403,10 +416,34 @@ class CatchingDrillContext():
 			right_index_3d_positions.append(right_index_3d)
 		
 		return left_index_3d_positions, right_index_3d_positions, person_planes
-
+	
+	@staticmethod
+	def localise_first_trajectory_change_position(first_trajectory_change_2d_position, point_projector):
+		return point_projector.project_2d_to_3d(first_trajectory_change_2d_position, Z=0)
 
 	@staticmethod
-	def generate_trajectory_plane():
+	def localise_last_trajectory_change_position(last_trajectory_change_2d_position, left_index_landmark, right_index_landmark, left_index_3d_position, right_index_3d_position):
+		def calculate_distance(x1, y1, x2, y2):
+			return np.sqrt(
+				((x2 - x1) * (x2 - x1)) + 
+				((y2 - y1) * (y2 - y1))
+			)
+
+		change_pos_x, change_pos_y = last_trajectory_change_2d_position
+
+		left_index_x, left_index_y = left_index_landmark.x, left_index_landmark.y
+		right_index_x, right_index_y = right_index_landmark.x, right_index_landmark.y
+
+		left_dist = calculate_distance(change_pos_x, change_pos_y, left_index_x, left_index_y)
+		right_dist = calculate_distance(change_pos_x, change_pos_y, right_index_x, right_index_y)
+
+		if left_dist < right_dist:
+			return left_index_3d_position
+		else:
+			return right_index_3d_position
+
+	@staticmethod
+	def generate_trajectory_plane(first_trajectory_change_3d_position, last_trajectory_change_3d_position):
 		# TODO: Process ball positions, pick the 3d hand position where the ball
 		# is intersecting with the hand to construct the trajectory plane
 
@@ -425,12 +462,19 @@ class CatchingDrillContext():
 		# )
 
 		# Also using 809
+		x1 = first_trajectory_change_3d_position[0]
+		y1 = first_trajectory_change_3d_position[1]
+		first_trajectory_change_3d_position = np.array([x1, y1, 0]).reshape((3, ))
+
+		x2 = last_trajectory_change_3d_position[0]
+		y2 = last_trajectory_change_3d_position[1]
+		last_trajectory_change_3d_position = np.array([x2, y2, 0]).reshape((3, ))
 
 		# Good for 00002.mp4
 		return Plane(
-			np.array([0.2, 0.3, 0]),
-			np.array([10, 0.8, 0]),
-			np.array([0.2, 0.3, -1])
+			np.array(first_trajectory_change_3d_position),
+			np.array(last_trajectory_change_3d_position),
+			np.array(last_trajectory_change_3d_position + np.array([0, 0, -1]))
 		)
 
 	@staticmethod
