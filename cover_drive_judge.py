@@ -92,6 +92,10 @@ class CoverDriveJudge():
 		# In the case that 0 frames are processed for a score, the score
 		# will be zero, as will frame_processed, resulting in a score of 0/0=nan
 		# convert this to a score of 0
+
+		# convert 0s to 1s in frames_processed to avoid 0 / 0 (divide by zero error)
+		self.frames_processed[self.frames_processed == 0] = 1
+
 		averageScores = np.nan_to_num(self.scores / self.frames_processed)
 		
 		stance_scores = np.zeros(3)
@@ -106,7 +110,6 @@ class CoverDriveJudge():
 		print("Post-shot stance: " + str(stance_scores[Stance.POST_SHOT.value]))
 
 		removed_zeros = stance_scores[np.nonzero(stance_scores)]
-
 
 		print("\nAverage score:")
 		average = np.sum(removed_zeros) / len(removed_zeros)
