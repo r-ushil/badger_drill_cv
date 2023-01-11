@@ -32,7 +32,7 @@ class CatchingJudge(Judge):
 		self.__cam_intrinsics = cam_intrinsics
 
 	def process_and_write_video(self):
-		drill_context = CatchingDrillContext(fps=self.fps)
+		drill_context = CatchingDrillContext(self.fps, self.get_video_dims())
 
 		for frame in self.get_frames():
 			self.process_frame(drill_context, frame)
@@ -130,7 +130,7 @@ class CatchingJudge(Judge):
 								contours=[effect.katchet_face_poly],
 								contourIdx=0,
 								color=effect.colour,
-								thickness=2,
+								thickness=8,
 								lineType=cv2.LINE_AA
 							)
 						case FrameEffectType.TEXT:
