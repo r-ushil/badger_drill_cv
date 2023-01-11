@@ -105,8 +105,11 @@ class CoverDriveJudge():
 		print("Pre-shot stance: " + str(stance_scores[Stance.PRE_SHOT.value]))
 		print("Post-shot stance: " + str(stance_scores[Stance.POST_SHOT.value]))
 
+		removed_zeros = stance_scores[np.nonzero(stance_scores)]
+
+
 		print("\nAverage score:")
-		average = np.sum(stance_scores) / 3
+		average = np.sum(removed_zeros) / len(removed_zeros)
 		print(average)
 
 		# get minimum two elements from self.scores, as a two element array in the form of indices
