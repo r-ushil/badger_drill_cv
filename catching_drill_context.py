@@ -51,8 +51,8 @@ class CatchingDrillContext():
 		self.trajectory_plane_fixed = None
 		self.angle_between_planes_fixed = None
 		self.intersection_point_of_planes_fixed = None
-		self.first_trajectory_change_2d_position = None
-		self.last_trajectory_change_2d_position = None
+		self.bounce_2d_position = None
+		self.catch_2d_position = None
 
 		self.frame_effectss = []
 
@@ -192,8 +192,8 @@ class CatchingDrillContext():
 				frame_effects, ball_3d_position, ball_3d_positions_so_far)
 			CatchingDrillContext.add_trajectory_change_2d_positions_frame_effect(
 				frame_effects,
-				self.first_trajectory_change_2d_position,
-				self.last_trajectory_change_2d_position
+				self.bounce_2d_position,
+				self.catch_2d_position
 			)
 			CatchingDrillContext.add_katchet_face_frame_effect(
 				frame_effects, katchet_face)
