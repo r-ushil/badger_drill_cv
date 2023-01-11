@@ -76,23 +76,28 @@ class CatchingDrillContext():
 		self.generate_point_projectors(cam_intrinsics)
 		self.generate_hand_2d_positions(video_dims)
 
-		bounce_pt, catch_pt = self.generate_ball_critical_points()
+		bounce_critical_pt, catch_critical_pt = self.generate_ball_critical_points()
 		ball_pts = self.ball_detector.get_ball_positions()
 
-		if bounce_pt is None or catch_pt is None:
+		if bounce_critical_pt is None or catch_critical_pt is None:
 			raise "Cannot find bounce or catch points!"
 
 		# replace 89 with catch_pt.get_frame_num()
 		# replace this with catch_pt.get_position_2d()
-		(catch_x, catch_y, _) = ball_pts[89]
 
-		(self.ball_2d_filtered_positions,
-		 self.first_trajectory_change_2d_position,
-		 self.last_trajectory_change_2d_position) = \
-			([ball_pt if frame_num > bounce_pt.get_frame_num() and frame_num < 89 else None
-			  for (frame_num, ball_pt) in enumerate(ball_pts)],
-			 bounce_pt.get_position_2d(),
-			 (catch_x, catch_y))
+		# TODO: Fix the critical point detector
+		# catch_frame = catch_critical_pt.get_frame_num()
+		# (catch_x, catch_y) = catch_critical_pt.get_position_2d()
+		self.catch_frame_index = 89 # Good for 809 / 002
+		self.bounce_frame_index = bounce_critical_pt.get_frame_num()
+		(catch_x, catch_y, _) = ball_pts[self.catch_frame_index]
+
+		self.bounce_2d_position = bounce_critical_pt.get_position_2d()
+		self.catch_2d_position = (catch_x, catch_y)
+
+		self.ball_2d_filtered_positions = \
+			[ball_pt if (frame_index > self.bounce_frame_index and frame_index < self.catch_frame_index) else None
+			  for (frame_index, ball_pt) in enumerate(ball_pts)]
 
 		# (self.ball_2d_filtered_positions,
 		#  self.first_trajectory_change_2d_position,
