@@ -45,7 +45,7 @@ class CatchingJudge(Judge):
 		for output_frame in self.generate_output_frames(drill_context):
 			self.write_frame(output_frame)
 
-		return drill_context.generate_results()
+		return drill_context.generate_output_results()
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
 		drill_context.frames.append(frame)
