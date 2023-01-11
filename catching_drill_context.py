@@ -29,6 +29,7 @@ class CatchingDrillContext():
 		self.point_projectors = []
 		self.pose_landmarkss = []
 		self.ball_2d_filtered_positions = []
+		self.ball_2d_positions = []
 		self.ball_detector = BallDetector()
 
 		self.left_heel_2d_positions = []
@@ -45,6 +46,8 @@ class CatchingDrillContext():
 
 		self.ball_3d_positions = []
 		self.ball_decomposed_positions = []
+
+		self.person_planes = []
 
 		# Remain the same throughout the drill
 		self.x_plane_fixed = None
@@ -81,18 +84,20 @@ class CatchingDrillContext():
 
 		bounce_pt, catch_pt = self.generate_ball_critical_points()
 		ball_pts = self.ball_detector.get_ball_positions()
+		self.ball_2d_positions = ball_pts
 
 		if bounce_pt is None or catch_pt is None:
 			raise "Cannot find bounce or catch points!"
 
 		# replace 89 with catch_pt.get_frame_num()
 		# replace this with catch_pt.get_position_2d()
-		(catch_x, catch_y, _) = ball_pts[89]
+		catch_frame = 89
+		(catch_x, catch_y, _) = ball_pts[catch_frame]
 
 		(self.ball_2d_filtered_positions,
 		 self.first_trajectory_change_2d_position,
 		 self.last_trajectory_change_2d_position) = \
-			([ball_pt if frame_num > bounce_pt.get_frame_num() and frame_num < 89 else None
+			([ball_pt if frame_num > bounce_pt.get_frame_num() and frame_num < catch_frame else None
 			  for (frame_num, ball_pt) in enumerate(ball_pts)],
 			 bounce_pt.get_position_2d(),
 			 (catch_x, catch_y))
@@ -113,10 +118,9 @@ class CatchingDrillContext():
 				self.point_projectors
 			)
 		
-		self.left_index_3d_positions, self.right_index_3d_positions = \
+		self.left_index_3d_positions, self.right_index_3d_positions, self.person_planes = \
 			CatchingDrillContext.generate_index_3d_positions(
 				self.left_heel_3d_positions,
-				self.right_heel_3d_positions,
 				self.point_projectors,
 				self.pose_landmarkss,
 				self.video_dims
@@ -171,15 +175,6 @@ class CatchingDrillContext():
 		ball_2d_positions_so_far = []
 		ball_3d_positions_so_far = []
 
-		print(len(self.frames))
-		print(len(self.katchet_faces))
-		print(len(self.left_heel_3d_positions))
-		print(len(self.right_heel_3d_positions))
-		print(len(self.pose_landmarkss))
-		print(len(self.ball_2d_filtered_positions))
-		print(len(self.left_index_3d_positions))
-		print(len(self.right_index_3d_positions))
-		print(len(self.ball_3d_positions))
 		for (frame_num, (frame,
 						 katchet_face,
 						 left_heel_3d,
@@ -188,7 +183,8 @@ class CatchingDrillContext():
 						 ball_2d_position,
 						 left_index_3d,
 						 right_index_3d,
-						 ball_3d_position)) in enumerate(zip(
+						 ball_3d_position,
+						 person_plane)) in enumerate(zip(
 							 self.frames,
 							 self.katchet_faces,
 							 self.left_heel_3d_positions,
@@ -198,13 +194,14 @@ class CatchingDrillContext():
 							 self.left_index_3d_positions,
 							 self.right_index_3d_positions,
 							 self.ball_3d_positions,
+							 self.person_planes
 						 )):
 
 			frame_effects = []
 
 			# TODO: Add frame effect for pose landmarks rather than directly
 			# annotating the frame
-			# CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
+			CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
 			# CatchingDrillContext.add_ball_3d_positions_frame_effect(
 			# 	frame_effects, ball_3d_position, ball_3d_positions_so_far)
 			# CatchingDrillContext.add_trajectory_change_2d_positions_frame_effect(
@@ -214,6 +211,8 @@ class CatchingDrillContext():
 			# )
 			CatchingDrillContext.add_ground_plane_frame_effect(
 				frame_effects, self.ground_plane_fixed)
+			# CatchingDrillContext.add_person_plane_frame_effect(
+			# 	frame_effects, person_plane)
 			CatchingDrillContext.add_katchet_face_frame_effect(
 				frame_effects, katchet_face)
 			CatchingDrillContext.add_katchet_board_points_frame_effect(
@@ -227,23 +226,23 @@ class CatchingDrillContext():
 			CatchingDrillContext.add_left_index_3d_frame_effect(frame_effects, left_index_3d)
 			CatchingDrillContext.add_right_index_3d_frame_effect(frame_effects, right_index_3d)
 
-			# CatchingDrillContext.add_trajectory_plane_frame_effect(
-			# 	frame_effects, self.trajectory_plane_fixed)
+			CatchingDrillContext.add_trajectory_plane_frame_effect(
+				frame_effects, self.trajectory_plane_fixed)
 			# CatchingDrillContext.add_x_plane_frame_effect(
 			# 	frame_effects, self.x_plane_fixed)
 
-			# CatchingDrillContext.add_angle_printing_frame_effect(
-			# 	frame_effects, self.angle_between_planes_fixed)
+			CatchingDrillContext.add_angle_printing_frame_effect(
+				frame_effects, self.angle_between_planes_fixed)
 			# CatchingDrillContext.add_intersection_point_frame_effect(
 			# 	frame_effects, self.intersection_point_of_planes_fixed)
 			# CatchingDrillContext.add_circle_frame_effect(frame_effects, self.circle_points_fixed)
 
-			# CatchingDrillContext.add_frame_number(frame_effects, frame_num)
-			# CatchingDrillContext.add_ball_average_speed_frame_effect(
-			# 	frame_effects, self.ball_speed_average)
+			CatchingDrillContext.add_frame_number(frame_effects, frame_num)
+			CatchingDrillContext.add_ball_average_speed_frame_effect(
+				frame_effects, self.ball_speed_average)
 
-			# CatchingDrillContext.ball_displacement_max_height_frame_effect(
-			# 	frame_effects, self.ball_displacement_max_height)
+			CatchingDrillContext.ball_displacement_max_height_frame_effect(
+				frame_effects, self.ball_displacement_max_height)
 
 			# CatchingDrillContext.add_ball_velocity_frame_effect(
 			# 	frame_effects, self.ball_velocity_average)
@@ -375,21 +374,20 @@ class CatchingDrillContext():
 		return left_heel_3d_positions, right_heel_3d_positions
 	
 	@staticmethod
-	def generate_index_3d_positions(left_heel_3d_positions, right_heel_3d_positions, point_projectors, pose_landmarkss, video_dims):
+	def generate_index_3d_positions(left_heel_3d_positions, point_projectors, pose_landmarkss, video_dims):
 		left_index_3d_positions = []
 		right_index_3d_positions = []
-		for left_heel_3d_position, right_heel_3d_position, point_projector, pose_landmarks \
-			in zip(left_heel_3d_positions, right_heel_3d_positions, point_projectors, pose_landmarkss):
-
-			left_heel_x = left_heel_3d_position[0]
-			left_heel_y = left_heel_3d_position[1]
-			left_heel_z = left_heel_3d_position[2]
+		person_planes = []
+		for left_heel_3d_position, point_projector, pose_landmarks \
+			in zip(left_heel_3d_positions, point_projectors, pose_landmarkss):
 
 			person_plane = Plane(
 				left_heel_3d_position.reshape((3, )), 
-				right_heel_3d_position.reshape((3, )), 
-				np.array([left_heel_x, left_heel_y, left_heel_z - 1]).reshape((3, ))
+				left_heel_3d_position.reshape((3, )) + np.array([0, 1, 0]).reshape((3, )),
+				left_heel_3d_position.reshape((3, )) + np.array([0, 0, -1]).reshape((3, ))
 			)
+
+			person_planes.append(person_plane)
 
 			left_index_landmark = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_INDEX]
 			right_index_landmark = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_INDEX]
@@ -404,7 +402,7 @@ class CatchingDrillContext():
 			left_index_3d_positions.append(left_index_3d)
 			right_index_3d_positions.append(right_index_3d)
 		
-		return left_index_3d_positions, right_index_3d_positions
+		return left_index_3d_positions, right_index_3d_positions, person_planes
 
 
 	@staticmethod
@@ -672,7 +670,26 @@ class CatchingDrillContext():
 				points_3d_multiple=ground_plane_points,
 				colour=(255, 0, 0),
 				show_label=False,
-				point_size=10
+				point_size=3
+			))
+
+	@staticmethod
+	def add_person_plane_frame_effect(frame_effects, person_plane):
+		def plane_points_to_print(point):
+			z = point[2]
+			return z <= 0
+
+		if person_plane is not None:
+			person_plane_points = person_plane.sample_grid_points(20, 1)
+			person_plane_points = list(filter(plane_points_to_print, person_plane_points))
+			
+			frame_effects.append(FrameEffect(
+				frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
+				primary_label="person plane points",
+				points_3d_multiple=person_plane_points,
+				colour=(0, 255, 255),
+				show_label=False,
+				point_size=4
 			))
 
 	@staticmethod
