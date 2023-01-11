@@ -258,7 +258,7 @@ class CatchingDrillContext():
 			self.right_hand_2d_positions.append(
 				np.array([sx_right_hand, sy_right_hand]))
 
-	def generate_output_results(self) -> CatchingDrillResults:
+	def generate_results(self) -> CatchingDrillResults:
 		return CatchingDrillResults(
 			speed=self.ball_speed_average,
 			max_height=self.ball_displacement_max_height,
