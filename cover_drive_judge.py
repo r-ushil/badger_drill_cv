@@ -22,10 +22,13 @@ class Stance(Enum):
 class Metrics(Enum):
 	HAND_BY_HIP = 0
 	FEET_SHOULDER_WIDTH = 1
-	BACKLIFT = 2
-	DROPPED_SHOULDER = 3
-	HEAD_KNEE_ALIGNMENT = 4
-	ELBOW_ANGLES = 5
+	KNEE_DISTANCE_FROM_HEAD = 2
+	ELBOW_ANGLES = 3
+	FEET_DISPLACEMENT = 4
+	KNEE_ANGLE = 5
+	KNEE_ELBOW_DISTANCE = 6
+
+
 
 
 def get_advice(metric: Metrics):
@@ -34,14 +37,16 @@ def get_advice(metric: Metrics):
 			return "Keep your hands by your hips"
 		case Metrics.FEET_SHOULDER_WIDTH:
 			return "Keep your feet shoulder width apart"
-		case Metrics.BACKLIFT:
-			return "Watch your backlift"
-		case Metrics.DROPPED_SHOULDER:
-			return "Watch your dropped shoulder"
-		case Metrics.HEAD_KNEE_ALIGNMENT:
-			return "Watch your head-knee alignment"
+		case Metrics.KNEE_DISTANCE_FROM_HEAD:
+			return "Try get your head closer to your front knee"
 		case Metrics.ELBOW_ANGLES:
-			return "Watch your elbow angles"
+			return "When following through the shot, try to keep your elbows bent"
+		case Metrics.FEET_DISPLACEMENT:
+			return "Try stepping forward with your front foot"
+		case Metrics.KNEE_ANGLE:
+			return "Try bending your front knee more"
+		case Metrics.KNEE_ELBOW_DISTANCE:
+			return "Try moving you front elbow closer to your front knee when playing the shot"
 			
 class CoverDriveJudge():
 	def __init__(self, input_video_path, no_output=False):
@@ -101,8 +106,9 @@ class CoverDriveJudge():
 		
 		stance_scores = np.zeros(3)
 		stance_scores[Stance.READY.value] = (averageScores[Metrics.HAND_BY_HIP.value] + averageScores[Metrics.FEET_SHOULDER_WIDTH.value]) / 2
-		stance_scores[Stance.PRE_SHOT.value] = (averageScores[Metrics.BACKLIFT.value] + averageScores[Metrics.DROPPED_SHOULDER.value]) / 2
-		stance_scores[Stance.POST_SHOT.value] = (averageScores[Metrics.HEAD_KNEE_ALIGNMENT.value] + averageScores[Metrics.ELBOW_ANGLES.value]) / 2
+		stance_scores[Stance.PRE_SHOT.value] = 0
+		stance_scores[Stance.POST_SHOT.value] = (averageScores[Metrics.KNEE_DISTANCE_FROM_HEAD.value] + averageScores[Metrics.ELBOW_ANGLES.value] + \
+			averageScores[Metrics.FEET_DISPLACEMENT.value] + averageScores[Metrics.KNEE_ANGLE.value] + averageScores[Metrics.KNEE_ELBOW_DISTANCE.value]) / 5 
 
 		# print out the average scores for each stance
 		print("\nAverage scores for each stance:")
@@ -110,7 +116,6 @@ class CoverDriveJudge():
 		print("Pre-shot stance: " + str(stance_scores[Stance.PRE_SHOT.value]))
 		print("Post-shot stance: " + str(stance_scores[Stance.POST_SHOT.value]))
 
-		stance_scores[1] = 0
 		removed_zeros = stance_scores[np.nonzero(stance_scores)]
 
 		print("\nAverage score:")
@@ -241,26 +246,26 @@ class CoverDriveJudge():
 		else:
 			shoulder_score = 1 - (distance_from_ideal_shoulder / DROPPED_SHOULDER_THRESHOLD)
 
-		self.scores[Metrics.BACKLIFT.value] += backlift_score
-		self.frames_processed[Metrics.BACKLIFT.value] += 1
+		# self.scores[Metrics.BACKLIFT.value] += backlift_score
+		# self.frames_processed[Metrics.BACKLIFT.value] += 1
 
-		self.scores[Metrics.DROPPED_SHOULDER.value] += shoulder_score
-		self.frames_processed[Metrics.DROPPED_SHOULDER.value] += 1
+		# self.scores[Metrics.DROPPED_SHOULDER.value] += shoulder_score
+		# self.frames_processed[Metrics.DROPPED_SHOULDER.value] += 1
 
 
 	def score_post_shot_stance(self, landmarks):
-		head_knee_alignment = CoverDriveJudge.calculate_y_displacement(
+		knee_distance_from_head = CoverDriveJudge.calculate_y_displacement(
 			landmarks[mp_pose.PoseLandmark.MOUTH_LEFT],
 			landmarks[mp_pose.PoseLandmark.LEFT_KNEE],
 		)
 
 		alignment_threshold = 0.4
 
-		if head_knee_alignment > alignment_threshold:
+		if knee_distance_from_head > alignment_threshold:
 			head_knee_score = 0
 		else:
 			weighting = 1 / alignment_threshold
-			head_knee_score = (alignment_threshold - head_knee_alignment) * weighting
+			head_knee_score = (alignment_threshold - knee_distance_from_head) * weighting
 
 
 		knee_angle = CoverDriveJudge.calculate_angle(
@@ -336,10 +341,19 @@ class CoverDriveJudge():
 			knee_elbow_score = (upper_threshold - knee_elbow_distance) * weighting
 
 
-		self.scores[Metrics.HEAD_KNEE_ALIGNMENT.value] += (head_knee_score + knee_score + feet_displacement_score) / 3
-		self.frames_processed[Metrics.HEAD_KNEE_ALIGNMENT.value] += 1
+		self.scores[Metrics.KNEE_DISTANCE_FROM_HEAD.value] += head_knee_score
+		self.frames_processed[Metrics.KNEE_DISTANCE_FROM_HEAD.value] += 1
 
-		self.scores[Metrics.ELBOW_ANGLES.value] += (elbow_angles_score + knee_elbow_score) / 2
+		self.scores[Metrics.FEET_DISPLACEMENT.value] += feet_displacement_score
+		self.frames_processed[Metrics.FEET_DISPLACEMENT.value] += 1
+
+		self.scores[Metrics.KNEE_ANGLE.value] += knee_score
+		self.frames_processed[Metrics.KNEE_ANGLE.value] += 1
+
+		self.scores[Metrics.KNEE_ELBOW_DISTANCE.value] += knee_elbow_score
+		self.frames_processed[Metrics.KNEE_ELBOW_DISTANCE.value] += 1
+
+		self.scores[Metrics.ELBOW_ANGLES.value] += elbow_angles_score 
 		self.frames_processed[Metrics.ELBOW_ANGLES.value] += 1
 	
 
