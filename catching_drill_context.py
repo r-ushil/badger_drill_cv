@@ -7,6 +7,7 @@ from ball_detector import \
 	BallDetector, \
 	CriticalBallPointDetector, \
 	CriticalPointType
+from catching_drill_results import CatchingDrillResults
 from frame_effect import FrameEffect, FrameEffectType
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from plane import Plane
@@ -256,6 +257,13 @@ class CatchingDrillContext():
 				np.array([sx_left_hand, sy_left_hand]))
 			self.right_hand_2d_positions.append(
 				np.array([sx_right_hand, sy_right_hand]))
+
+	def generate_output_results(self) -> CatchingDrillResults:
+		return CatchingDrillResults(
+			speed=self.ball_speed_average,
+			max_height=self.ball_displacement_max_height,
+			angle=0.0,
+		)
 
 	@staticmethod
 	def filter_ball_2d_positions(ball_2d_positions):
