@@ -44,6 +44,8 @@ class CatchingDrillContext():
 		self.ball_3d_positions = []
 		self.ball_decomposed_positions = []
 
+		self.body_3d_positionss = []
+
 		# Remain the same throughout the drill
 		self.x_plane_fixed = None
 		self.ground_plane_fixed = None
@@ -53,6 +55,9 @@ class CatchingDrillContext():
 		self.intersection_point_of_planes_fixed = None
 		self.bounce_2d_position = None
 		self.catch_2d_position = None
+		self.catch_3d_position = None
+		self.bounce_frame_index = None
+		self.catch_frame_index = None
 
 		self.frame_effectss = []
 
@@ -115,6 +120,13 @@ class CatchingDrillContext():
 				self.right_heel_2d_positions,
 				self.point_projectors
 			)
+		
+		self.body_3d_positionss = CatchingDrillContext.generate_body_3d_positions(
+			self.left_heel_3d_positions,
+			self.pose_landmarkss,
+			self.video_dims,
+			self.point_projectors
+		)
 
 		# self.first_trajectory_change_3d_position = \
 		# 	CatchingDrillContext.localise_first_trajectory_change_position(
@@ -122,7 +134,13 @@ class CatchingDrillContext():
 		# 		self.first_trajectory_change_2d_position
 		# 	)
 
-		self.trajectory_plane_fixed = CatchingDrillContext.generate_trajectory_plane()
+		self.catch_3d_position, self.trajectory_plane_fixed = CatchingDrillContext.generate_trajectory_plane(
+			self.catch_2d_position,
+			self.left_heel_3d_positions[self.catch_frame_index],
+			self.pose_landmarkss[self.catch_frame_index],
+			self.video_dims,
+			self.point_projectors[self.catch_frame_index]
+		)
 		self.x_plane_fixed = CatchingDrillContext.generate_x_plane()
 		self.ground_plane_fixed = CatchingDrillContext.generate_ground_plane()
 
@@ -171,6 +189,7 @@ class CatchingDrillContext():
 						 right_heel_3d,
 						 pose_landmarks,
 						 ball_2d_position,
+						 body_3d_positions,
 						 ball_3d_position)) in enumerate(zip(
 							 self.frames,
 							 self.katchet_faces,
@@ -178,6 +197,7 @@ class CatchingDrillContext():
 							 self.right_heel_3d_positions,
 							 self.pose_landmarkss,
 							 self.ball_2d_filtered_positions,
+							 self.body_3d_positionss,
 							 self.ball_3d_positions,
 						 )):
 
@@ -223,6 +243,16 @@ class CatchingDrillContext():
 
 			CatchingDrillContext.ball_displacement_max_height_frame_effect(
 				frame_effects, self.ball_displacement_max_height)
+
+			CatchingDrillContext.add_catch_3d_frame_effect(
+				frame_effects, self.catch_3d_position
+			)
+
+			print(body_3d_positions)
+			CatchingDrillContext.add_body_positions_3d_frame_effect(
+				frame_effects,
+				body_3d_positions
+			)
 
 			# CatchingDrillContext.add_ball_velocity_frame_effect(
 			# 	frame_effects, self.ball_velocity_average)
@@ -360,9 +390,117 @@ class CatchingDrillContext():
 		return left_heel_3d_positions, right_heel_3d_positions
 
 	@staticmethod
-	def generate_trajectory_plane():
+	def generate_body_3d_positions(left_heel_3d_positions, pose_landmarkss, video_dims, point_projector):
+		def vectorize_mp_coords(x = None, y = None, z = None, landmark = None):
+			if landmark is not None:
+				x = landmark.x
+				y = landmark.y
+				z = landmark.z
+			return np.array([
+				z,
+				# mediapipe y-axis is equivalent to the world z-axis
+				y,
+				x,
+			]).reshape(3, 1)
+		
+		def generate_world_vector(joint_3d_position_mp, left_heel_3d_position_mp, left_heel_3d_position, point_projector):
+			return point_projector.transform_camera_to_world_axes(
+				10 * (joint_3d_position_mp - left_heel_3d_position_mp) +
+				point_projector.transform_world_to_camera_axes(left_heel_3d_position)
+			)
+		
+		joint_3d_positionss = []
+		for pose_landmarks, point_projector, left_heel_3d_position in zip(pose_landmarkss, point_projector, left_heel_3d_positions):
+			landmarks = [
+				pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HEEL],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_INDEX],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_INDEX],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_KNEE],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER],
+				pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER]
+			]
+
+			joint_3d_positions_mp = list(map(lambda lm: vectorize_mp_coords(landmark=lm), landmarks))
+			joint_3d_positions = list(map(lambda position_mp: generate_world_vector(position_mp, joint_3d_positions_mp[0], left_heel_3d_position, point_projector), joint_3d_positions_mp))
+
+			joint_3d_positionss.append(joint_3d_positions)
+		
+		return joint_3d_positionss
+		
+	@staticmethod
+	def generate_trajectory_plane(catch_2d_position, left_heel_3d_position, pose_landmarks, video_dims, point_projector):
 		# TODO: Process ball positions, pick the 3d hand position where the ball
 		# is intersecting with the hand to construct the trajectory plane
+
+		# def calculate_distance(x1, y1, x2, y2):
+		# 	return np.sqrt(
+		# 		((x2 - x1) * (x2 - x1)) + 
+		# 		((y2 - y1) * (y2 - y1))
+		# 	)
+
+		# def generate_world_vector(joint_3d_mp, left_heel_3d_mp):
+		# 	return point_projector.transform_camera_to_world_axes(
+		# 		1.5 * (joint_3d_mp - left_heel_3d_mp) +
+		# 		point_projector.transform_world_to_camera_axes(left_heel_3d_position)
+		# 	)
+
+		# left_heel_landmark = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_HEEL]
+		# left_index_landmark = pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_INDEX]
+		# right_index_landmark = pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_INDEX]
+
+		# vid_w, vid_h = video_dims
+		# left_index_3d_mp = (
+		# 	-left_index_landmark.z * vid_w,
+		# 	left_index_landmark.x * vid_w,
+		# 	left_index_landmark.y * vid_h,
+		# )
+		
+		# right_index_3d_mp = (
+		# 	-right_index_landmark.z * vid_w,
+		# 	right_index_landmark.x * vid_w,
+		# 	right_index_landmark.y * vid_h,
+		# )
+
+		# left_heel_3d_mp = (
+		# 	-left_heel_landmark.z * vid_w,
+		# 	left_heel_landmark.x * vid_w,
+		# 	left_heel_landmark.y * vid_h,
+		# )
+
+		# (catch_sx, catch_sy) = catch_2d_position
+		# left_index_2d_distance = calculate_distance(
+		# 	catch_sx,
+		# 	catch_sy,
+		# 	left_index_landmark.x * vid_w,
+		# 	left_index_landmark.y * vid_h
+		# )
+		# right_index_2d_distance = calculate_distance(
+		# 	catch_sx,
+		# 	catch_sy,
+		# 	right_index_landmark.x * vid_w,
+		# 	right_index_landmark.y * vid_h
+		# )
+
+		# catch_index_3d_mp = left_index_3d_mp \
+		# 	if left_index_2d_distance < right_index_2d_distance else right_index_3d_mp
+
+		# catch_index_3d_mp = np.array([
+		# 	catch_index_3d_mp[0],
+		# 	catch_index_3d_mp[1],
+		# 	catch_index_3d_mp[2]
+		# ]).reshape((3, 1))
+
+		# left_heel_3d_mp = np.array([
+		# 	left_heel_3d_mp[0],
+		# 	left_heel_3d_mp[1],
+		# 	left_heel_3d_mp[2]
+		# ]).reshape((3, 1))
+
+		# catch_3d_position = generate_world_vector(catch_index_3d_mp, left_heel_3d_mp)
 
 		# Good for video 849
 		# return Plane(
@@ -378,10 +516,12 @@ class CatchingDrillContext():
 		# 	np.array([0, 0.25, -1])
 		# )
 
-		# Good for 00002.mp4
-		return Plane(
+		catch_3d_position = np.array([10, 0.8, 0]).reshape((3, 1))
+		# Good for 00002.mp4 / 809
+		return catch_3d_position, Plane(
 			np.array([0.2, 0.3, 0]),
-			np.array([10, 0.8, 0]),
+			# np.array([10, 0.8, 0]),
+			np.array(catch_3d_position.reshape((3, ))),
 			np.array([0.2, 0.3, -1])
 		)
 
@@ -499,6 +639,18 @@ class CatchingDrillContext():
 			))
 
 	@staticmethod
+	def add_catch_3d_frame_effect(frame_effects, catch_3d):
+		if catch_3d is not None:
+			frame_effects.append(FrameEffect(
+				frame_effect_type=FrameEffectType.POINT_3D_SINGLE,
+				point_3d_single=catch_3d,
+				primary_label="Catch Point 3D",
+				display_label=FrameEffect.generate_point_string(catch_3d),
+				show_label=True,
+				colour=(255, 0, 0)
+			))
+
+	@staticmethod
 	def add_right_heel_3d_frame_effect(frame_effects, right_heel_3d):
 		if right_heel_3d is not None:
 			frame_effects.append(FrameEffect(
@@ -597,6 +749,17 @@ class CatchingDrillContext():
 				show_label=False,
 				point_size=2
 			))
+
+	@staticmethod
+	def add_body_positions_3d_frame_effect(frame_effects, body_positions_3d):
+		frame_effects.append(FrameEffect(
+			frame_effect_type=FrameEffectType.POINTS_3D_MULTIPLE,
+			primary_label="Body positions 3D",
+			points_3d_multiple=body_positions_3d,
+			colour=(255, 0, 0),
+			show_label=True,
+			point_size=10
+		))
 
 	@staticmethod
 	def add_angle_printing_frame_effect(frame_effects, angle_rad):
