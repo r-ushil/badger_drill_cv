@@ -4,6 +4,7 @@ import mediapipe as mp
 import cv2
 
 from numpy import array
+from catching_drill_results import CatchingDrillResults
 from plane import Plane
 from point_projector import CameraIntrinsics, PointProjector
 
@@ -19,8 +20,8 @@ mp_pose = mp.solutions.pose
 class CatchingJudge(Judge):
 	__cam_pose_estimator: PointProjector
 
-	def __init__(self, input_video_path, cam_intrinsics: CameraIntrinsics):
-		super().__init__(input_video_path)
+	def __init__(self, input_video_path, cam_intrinsics: CameraIntrinsics, no_output: bool = False):
+		super().__init__(input_video_path, no_output)
 
 		self.pose_estimator = mp_pose.Pose(
 			static_image_mode=False,
@@ -43,6 +44,8 @@ class CatchingJudge(Judge):
 
 		for output_frame in self.generate_output_frames(drill_context):
 			self.write_frame(output_frame)
+
+		return drill_context.generate_results()
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
 		drill_context.frames.append(frame)
