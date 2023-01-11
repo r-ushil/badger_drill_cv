@@ -301,8 +301,7 @@ class CatchingDrillContext():
 	def generate_output_results(self) -> CatchingDrillResults:
 		return CatchingDrillResults(
 			speed=self.ball_speed_average,
-			max_height=self.ball_displacement_max_height,
-			angle=0.0,
+			max_height=self.ball_displacement_max_height
 		)
 
 	@staticmethod

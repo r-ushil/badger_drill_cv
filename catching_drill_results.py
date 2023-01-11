@@ -27,10 +27,32 @@ class CatchingDrillResults():
         self,
         speed: float = 0.0,
         max_height: float = 0.0,
-        angle: float = 0.0,
         err: Optional[CatchingDrillError] = None
     ) -> None:
         self.speed = speed
         self.max_height = max_height
-        self.angle = angle
         self.err = err
+    
+    def get_score(self):
+        max_speed = 29
+        min_speed = 10
+        speed_range = max_speed - min_speed
+
+        max_height = 2.8
+        min_heigth = 0.2
+        height_range = max_height - min_heigth
+
+        scaled_speed = self.speed / speed_range
+        scaled_heigth = self.max_height / height_range
+
+        print("Speed score:", scaled_speed)
+        print("Height score:", scaled_heigth)
+        
+        height_contribution = 0.2
+        speed_contibution = 0.8
+
+        score = int((height_contribution * scaled_heigth + speed_contibution * scaled_speed) * 100)
+
+        print("Final score:", score)
+
+        return score

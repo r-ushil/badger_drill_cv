@@ -29,7 +29,5 @@ def process_catching_drill_video():
 			), 400
 
 		return jsonify(
-            ball_speed=result.speed,
-            ball_max_height=result.max_height,
-            ball_angle=result.angle,
+            score=result.get_score(),
         )
