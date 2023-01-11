@@ -33,7 +33,7 @@ class CatchingJudge(Judge):
 		self.__cam_intrinsics = cam_intrinsics
 
 	def process_and_write_video(self) -> CatchingDrillResults:
-		drill_context = CatchingDrillContext(fps=self.fps)
+		drill_context = CatchingDrillContext(self.fps, self.get_video_dims())
 
 		for frame in self.get_frames():
 			self.process_frame(drill_context, frame)

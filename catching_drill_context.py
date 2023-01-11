@@ -21,9 +21,10 @@ class CatchingDrillContext():
 	ball_2d_positions: list
 	ball_detector: BallDetector
 
-	def __init__(self, fps) -> None:
+	def __init__(self, fps, video_dims) -> None:
 		# Exist per frame
 		self.fps = fps
+		self.video_dims = video_dims
 		self.frames = []
 		self.katchet_faces = []
 		self.point_projectors = []
