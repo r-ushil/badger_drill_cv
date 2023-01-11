@@ -12,9 +12,3 @@
  ```sh
  pip3 install -r requirements.txt
  ```
-5. Run using the following command
- ```sh
- python batting-drill.py /PATH/TO/VIDEO
- ```
-
-VSCode allows for easier development with the Jupyter notebook.
