@@ -1,6 +1,7 @@
 import mediapipe as mp
 import numpy as np
 import cv2
+from math import nan
 from enum import Enum
 
 SHOULDER_WIDTH_THRESHOLD = 0.15
@@ -85,6 +86,10 @@ class CoverDriveJudge():
 
 	def display_scores_and_advice(self):
 
+		if np.all(self.frames_processed == 0):
+			print("Person not detected, no advice to give")
+			return (nan, "Person not detected, no advice to give", "")
+
 		# In the case that 0 frames are processed for a score, the score
 		# will be zero, as will frame_processed, resulting in a score of 0/0=nan
 		# convert this to a score of 0
@@ -132,6 +137,8 @@ class CoverDriveJudge():
 
 		# run pose estimation on frame
 		landmark_results = self.pose_estimator.process(frame)
+		if landmark_results.pose_landmarks == None:
+			return
 
 		# convert colour format back to BGR
 		frame.flags.writeable = True
