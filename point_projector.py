@@ -2,6 +2,7 @@ from copy import deepcopy
 from cv2 import solvePnPRansac, Rodrigues
 from calib3d import Calib, Point2D, Point3D, line_plane_intersection
 from numpy import append, array, concatenate, float64, matmul, ndarray, reshape, zeros
+from numpy.testing import assert_almost_equal
 from typing import Optional, Tuple
 import numpy as np
 
@@ -146,6 +147,20 @@ class PointProjector:
 
     def is_localised(self) -> bool:
         return self.__cam_calib is not None
+    
+    @assert_localised
+    def transform_world_to_camera_axes(self, vec_world: ndarray[(3, 1), float64]) -> ndarray[(3, 1), float64]:
+        assert vec_world.shape == (3, 1)
+        point_affn = reshape(append(vec_world, [1.0]), (4, 1))
+        rot_tra_mat_inv = np.delete(np.linalg.inv(np.concatenate((self.__rot_tra_mat, [[0, 0, 0, 1]]), axis=0)), 3, 0)
+        assert_almost_equal(rot_tra_mat_inv, self.__rot_tra_mat_inv)
+        return matmul(self.__rot_tra_mat_inv, point_affn)
+
+    @assert_localised
+    def transform_camera_to_world_axes(self, vec_camera: ndarray[(3, 1), float64]) -> ndarray[(3, 1), float64]:
+        assert vec_camera.shape == (3, 1)
+        point_affn = reshape(append(vec_camera, [1.0]), (4, 1))
+        return matmul(self.__rot_tra_mat, point_affn)
 
     @assert_localised
     def project_3d_to_2d(self, point_3d: ndarray[(3, 1), float64]) -> ndarray[(2, 1), float64]:
