@@ -33,7 +33,7 @@ def process_catching_drill_video():
 		if result.err is not None:
 			return ','.join([str(int(0)), "", ""])
 
-		advice1 = f"You caught the ball at {result.get_speed()}ms-1."
-		advice2 = f"The ball bounced {result.get_max_height()}m high!"
+		advice1 = f"You caught the ball at {round(result.get_speed(), 2)}ms-1."
+		advice2 = f"The ball bounced {round(result.get_max_height(), 2)}m high!"
 
 		return ','.join([str(int(result.get_score())), advice1, advice2])
