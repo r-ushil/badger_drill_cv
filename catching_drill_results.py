@@ -56,3 +56,9 @@ class CatchingDrillResults():
         print("Final score:", score)
 
         return score
+
+    def get_max_height(self):
+        return self.max_height
+    
+    def get_speed(self):
+        return self.speed
