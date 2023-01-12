@@ -122,6 +122,7 @@ class CatchingDrillContext():
 		self.left_index_3d_positions, self.right_index_3d_positions, self.person_planes = \
 			CatchingDrillContext.generate_index_3d_positions(
 				self.left_heel_3d_positions,
+				self.right_heel_3d_positions,
 				self.point_projectors,
 				self.pose_landmarkss,
 				self.video_dims
@@ -394,17 +395,28 @@ class CatchingDrillContext():
 		return left_heel_3d_positions, right_heel_3d_positions
 	
 	@staticmethod
-	def generate_index_3d_positions(left_heel_3d_positions, point_projectors, pose_landmarkss, video_dims):
+	def generate_index_3d_positions(left_heel_3d_positions, right_heel_3d_positions, point_projectors, pose_landmarkss, video_dims):
 		left_index_3d_positions = []
 		right_index_3d_positions = []
 		person_planes = []
-		for left_heel_3d_position, point_projector, pose_landmarks \
-			in zip(left_heel_3d_positions, point_projectors, pose_landmarkss):
+		for left_heel_3d_position, right_heel_3d_position, point_projector, pose_landmarks \
+			in zip(left_heel_3d_positions, right_heel_3d_positions, point_projectors, pose_landmarkss):
+
+			foot_3d_position = None
+			if left_heel_3d_position is not None:
+				foot_3d_position = left_heel_3d_position
+			elif right_heel_3d_position is not None:
+				foot_3d_position = right_heel_3d_position
+			else:
+				person_planes.append(None)
+				left_index_3d_positions.append(None)
+				right_index_3d_positions.append(None)
+				continue
 
 			person_plane = Plane(
-				left_heel_3d_position.reshape((3, )), 
-				left_heel_3d_position.reshape((3, )) + np.array([0, 1, 0]).reshape((3, )),
-				left_heel_3d_position.reshape((3, )) + np.array([0, 0, -1]).reshape((3, ))
+				foot_3d_position.reshape((3, )), 
+				foot_3d_position.reshape((3, )) + np.array([0, 1, 0]).reshape((3, )),
+				foot_3d_position.reshape((3, )) + np.array([0, 0, -1]).reshape((3, ))
 			)
 
 			person_planes.append(person_plane)
