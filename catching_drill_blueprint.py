@@ -34,6 +34,6 @@ def process_catching_drill_video():
 			return ','.join([str(int(0)), "", ""])
 
 		advice1 = f"You caught the ball at {result.get_speed()}ms-1."
-		advice2 = f"The ball bounced {result.get_height()}m high!"
+		advice2 = f"The ball bounced {result.get_max_height()}m high!"
 
 		return ','.join([str(int(result.get_score())), advice1, advice2])
