@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-class CatchingDrillError(Enum):
+class CatchingDrillErrorType(Enum):
     BOUNCE_POINT_NOT_DETECTED = "not-detected/point-bounce"
     CATCH_POINT_NOT_DETECTED = "not-detected/point-catch"
     KATCHET_BOARD_NOT_DETECTED = "not-detected/katchet-board"
@@ -12,15 +12,18 @@ class CatchingDrillError(Enum):
 
     def get_err_message(self) -> str:
         match self:
-            case CatchingDrillError.BOUNCE_POINT_NOT_DETECTED:
+            case CatchingDrillErrorType.BOUNCE_POINT_NOT_DETECTED:
                 return "Failed to detect bounce point"
-            case CatchingDrillError.CATCH_POINT_NOT_DETECTED:
+            case CatchingDrillErrorType.CATCH_POINT_NOT_DETECTED:
                 return "Failed to detect catch point"
-            case CatchingDrillError.KATCHET_BOARD_NOT_DETECTED:
+            case CatchingDrillErrorType.KATCHET_BOARD_NOT_DETECTED:
                 return "Failed to detect Katchet board"
-            case CatchingDrillError.POSE_NOT_DETECTED:
+            case CatchingDrillErrorType.POSE_NOT_DETECTED:
                 return "Failed to detect pose"
 
+class CatchingDrillError(Exception):
+    def __init__(self, err_type: CatchingDrillErrorType) -> None:
+        super().__init__(err_type.get_err_message())
 
 class CatchingDrillResults():
     def __init__(
@@ -62,3 +65,6 @@ class CatchingDrillResults():
     
     def get_speed(self):
         return self.speed
+
+    def get_error(self):
+        return self.err

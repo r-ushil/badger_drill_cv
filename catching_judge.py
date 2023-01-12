@@ -4,7 +4,7 @@ import mediapipe as mp
 import cv2
 
 from numpy import array
-from catching_drill_results import CatchingDrillError, CatchingDrillResults
+from catching_drill_results import CatchingDrillError, CatchingDrillErrorType, CatchingDrillResults
 from plane import Plane
 from point_projector import CameraIntrinsics, PointProjector
 
@@ -33,27 +33,32 @@ class CatchingJudge(Judge):
 		self.__cam_intrinsics = cam_intrinsics
 
 	def process_and_write_video(self):
-		drill_context = CatchingDrillContext(self.fps, self.get_video_dims())
+		try:
+			drill_context = CatchingDrillContext(self.fps, self.get_video_dims())
 
-		for frame in self.get_frames():
-			self.process_frame(drill_context, frame)
+			for frame in self.get_frames():
+				self.process_frame(drill_context, frame)
 
-		drill_context.interpolate_missing_data()
+			drill_context.interpolate_missing_data()
 
-		katchet_faces = drill_context.katchet_faces
-		katchet_faces_len = len(katchet_faces)
-		katchet_faces_detected = sum([1 for x in katchet_faces if x is not None])
-		proportion_detected = katchet_faces_detected / katchet_faces_len
-		if proportion_detected < 0.3:
-			return CatchingDrillResults(err=CatchingDrillError.KATCHET_BOARD_NOT_DETECTED)
+			katchet_faces = drill_context.katchet_faces
+			katchet_faces_len = len(katchet_faces)
+			katchet_faces_detected = sum([1 for x in katchet_faces if x is not None])
+			proportion_detected = katchet_faces_detected / katchet_faces_len
+			if proportion_detected < 0.3:
+				raise CatchingDrillError(err_type=CatchingDrillErrorType.KATCHET_BOARD_NOT_DETECTED)
 
-		drill_context.generate_augmented_data(self.get_video_dims(), cam_intrinsics=self.__cam_intrinsics)
-		drill_context.generate_frame_effects()
+			drill_context.generate_augmented_data(self.get_video_dims(), cam_intrinsics=self.__cam_intrinsics)
+			drill_context.generate_frame_effects()
 
-		for output_frame in self.generate_output_frames(drill_context):
-			self.write_frame(output_frame)
+			for output_frame in self.generate_output_frames(drill_context):
+				self.write_frame(output_frame)
 
-		return drill_context.generate_output_results()
+			return drill_context.generate_output_results()
+		except CatchingDrillError as err:
+			return drill_context.generate_output_error(err=err)
+		except:
+			return drill_context.generate_output_error(err=Exception("Unknown error occured!"))
 
 	def process_frame(self, drill_context: CatchingDrillContext, frame):
 		drill_context.frames.append(frame)

@@ -7,7 +7,7 @@ from ball_detector import \
 	BallDetector, \
 	CriticalBallPointDetector, \
 	CriticalPointType
-from catching_drill_results import CatchingDrillResults
+from catching_drill_results import CatchingDrillError, CatchingDrillErrorType, CatchingDrillResults
 from frame_effect import FrameEffect, FrameEffectType
 from katchet_board import KATCHET_BOX_BOT_L, KATCHET_BOX_BOT_R, KATCHET_BOX_TOP_L, KATCHET_BOX_TOP_R
 from plane import Plane
@@ -87,8 +87,11 @@ class CatchingDrillContext():
 		ball_pts = self.ball_detector.get_ball_positions()
 		self.ball_2d_positions = ball_pts
 
-		if bounce_pt is None or catch_pt is None:
-			raise "Cannot find bounce or catch points!"
+		if bounce_pt is None:
+			raise CatchingDrillError(err_type=CatchingDrillErrorType.BOUNCE_POINT_NOT_DETECTED)
+
+		if catch_pt is None:
+			raise CatchingDrillError(err_type=CatchingDrillErrorType.CATCH_POINT_NOT_DETECTED)
 
 		# replace 89 with catch_pt.get_frame_num()
 		# replace this with catch_pt.get_position_2d()
@@ -303,6 +306,9 @@ class CatchingDrillContext():
 			speed=self.ball_speed_average,
 			max_height=self.ball_displacement_max_height
 		)
+
+	def generate_output_error(self, err) -> CatchingDrillResults:
+		return CatchingDrillResults(err=err)
 
 	@staticmethod
 	def filter_ball_2d_positions(ball_2d_positions):

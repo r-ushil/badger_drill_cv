@@ -31,7 +31,8 @@ def process_catching_drill_video():
 		result = judge.process_and_write_video()
 
 		if result.err is not None:
-			return ','.join([str(int(0)), "", ""])
+			err = result.get_error()
+			return ','.join([str(int(0)), str(err), ""])
 
 		advice1 = f"You caught the ball at {round(result.get_speed(), 2)}ms-1."
 		advice2 = f"The ball bounced {round(result.get_max_height(), 2)}m high!"
