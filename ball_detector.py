@@ -141,10 +141,11 @@ class CriticalPoint():
 		return self.__position_2d
 
 class CriticalBallPointDetector():
-	def __init__(self, ball_positions, left_hand_poses_2d, right_hand_poses_2d):
+	def __init__(self, ball_positions, left_hand_poses_2d, right_hand_poses_2d, katchet_board_center_2d):
 		self.__ball_positions = ball_positions
 		self.__left_hand_poses_2d = left_hand_poses_2d
 		self.__right_hand_poses_2d = right_hand_poses_2d
+		self.__katchet_board_center_2d = katchet_board_center_2d
 
 	def get_critical_points(self):
 		from more_itertools import windowed
@@ -181,7 +182,7 @@ class CriticalBallPointDetector():
 
 		if frame_num_bounce is None:
 			# Ball did not bounce so no critical points
-			return
+			yield CriticalPoint(CriticalPointType.BOUNCE, 0, self.__katchet_board_center_2d)
 
 		for (frame_num, (ball_pos, left_hand_pose_2d, right_hand_pose_2d)) in enumerate(zip(
 			self.__ball_positions,

@@ -1,5 +1,6 @@
 import mediapipe as mp
 import numpy as np
+import cv2
 
 from copy import copy
 
@@ -84,6 +85,7 @@ class CatchingDrillContext():
 		self.generate_hand_2d_positions(video_dims)
 
 		bounce_pt, catch_pt = self.generate_ball_critical_points()
+		self.first_trajectory_change_2d_position, self.last_trajectory_change_2d_position = bounce_pt.get_position_2d(), catch_pt.get_position_2d()
 		ball_pts = self.ball_detector.get_ball_positions()
 		self.ball_2d_positions = ball_pts
 
@@ -92,16 +94,15 @@ class CatchingDrillContext():
 
 		# replace 89 with catch_pt.get_frame_num()
 		# replace this with catch_pt.get_position_2d()
-		catch_frame = 89
-		(catch_x, catch_y, _) = ball_pts[catch_frame]
+		# catch_frame = 89
+		# (catch_x, catch_y, _) = ball_pts[catch_frame]
 
-		(self.ball_2d_filtered_positions,
-		 self.first_trajectory_change_2d_position,
-		 self.last_trajectory_change_2d_position) = \
-			([ball_pt if frame_num > bounce_pt.get_frame_num() and frame_num < catch_frame else None
-			  for (frame_num, ball_pt) in enumerate(ball_pts)],
-			 bounce_pt.get_position_2d(),
-			 (catch_x, catch_y))
+		self.ball_2d_filtered_positions = \
+			[ball_pt if frame_num > bounce_pt.get_frame_num() and frame_num < catch_pt.get_frame_num() else None
+			  for (frame_num, ball_pt) in enumerate(ball_pts)]
+
+		# self.first_trajectory_change_2d_position = bounce_pt.get_position_2d()
+		# self.last_trajectory_change_2d_position = (catch_x, catch_y)
 
 		# (self.ball_2d_filtered_positions,
 		#  self.first_trajectory_change_2d_position,
@@ -134,6 +135,7 @@ class CatchingDrillContext():
 				self.point_projectors[bounce_pt.get_frame_num()]
 			)
 
+		catch_frame = catch_pt.get_frame_num()
 		self.last_trajectory_change_3d_position = \
 			CatchingDrillContext.localise_last_trajectory_change_position(
 				self.last_trajectory_change_2d_position,
@@ -205,7 +207,7 @@ class CatchingDrillContext():
 							 self.left_heel_3d_positions,
 							 self.right_heel_3d_positions,
 							 self.pose_landmarkss,
-							 self.ball_2d_filtered_positions,
+							 self.ball_2d_positions,
 							 self.left_index_3d_positions,
 							 self.right_index_3d_positions,
 							 self.ball_3d_positions,
@@ -216,7 +218,7 @@ class CatchingDrillContext():
 
 			# TODO: Add frame effect for pose landmarks rather than directly
 			# annotating the frame
-			# CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
+			CatchingDrillContext.add_ball_2d_positions_frame_effect(frame_effects, ball_2d_position, ball_2d_positions_so_far)
 			CatchingDrillContext.add_ball_3d_positions_frame_effect(
 				frame_effects, ball_3d_position, ball_3d_positions_so_far)
 			# CatchingDrillContext.add_trajectory_change_2d_positions_frame_effect(
@@ -262,7 +264,7 @@ class CatchingDrillContext():
 			# CatchingDrillContext.add_ball_velocity_frame_effect(
 			# 	frame_effects, self.ball_velocity_average)
 
-			# CatchingDrillContext.add_ball_2d_critical_points_frame_effect(frame_effects, self.critical_points)
+			CatchingDrillContext.add_ball_2d_critical_points_frame_effect(frame_effects, self.first_trajectory_change_2d_position, self.last_trajectory_change_2d_position)
 
 			self.frame_effectss.append(frame_effects)
 
@@ -568,20 +570,18 @@ class CatchingDrillContext():
 
 	def generate_ball_critical_points(self):
 		ball_positions = self.ball_detector.get_ball_positions()
+
+		katchet_center = cv2.moments(self.katchet_faces[int(len(self.frames) / 4)])
+		center_x = int(katchet_center["m10"] / katchet_center["m00"])
+		center_y = int(katchet_center["m01"] / katchet_center["m00"])
+
 		detector = CriticalBallPointDetector(
-			ball_positions, self.left_hand_2d_positions, self.right_hand_2d_positions)
+			ball_positions, self.left_hand_2d_positions, self.right_hand_2d_positions, (center_x, center_y))
 
-		self.critical_points = list(detector.get_critical_points())
+		critical_points = detector.get_critical_points()
 
-		bounce_pt = None
-		catch_pt = None
-
-		for pt in self.critical_points:
-			match pt.get_type():
-				case CriticalPointType.BOUNCE:
-					bounce_pt = pt
-				case CriticalPointType.CATCH:
-					catch_pt = pt
+		bounce_pt = next(critical_points)
+		catch_pt = next(critical_points)
 
 		return bounce_pt, catch_pt
 
@@ -852,12 +852,11 @@ class CatchingDrillContext():
 		))
 
 	@staticmethod
-	def add_ball_2d_critical_points_frame_effect(frame_effects, critical_points):
+	def add_ball_2d_critical_points_frame_effect(frame_effects, first_trajectory_change_2d_position, last_trajectory_change_2d_position):
 		frame_effects.append(FrameEffect(
 			frame_effect_type=FrameEffectType.POINTS_2D_MULTIPLE,
 			primary_label="Ball positions",
-			points_2d_multiple=copy([cp.get_position_2d()
-									for cp in critical_points]),
+			points_2d_multiple=[first_trajectory_change_2d_position, last_trajectory_change_2d_position],
 			colour=(0, 255, 255),
 			show_label=False
 		))
