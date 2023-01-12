@@ -2,6 +2,7 @@ from math import isnan
 from flask import Blueprint, jsonify, request
 
 from catching_judge import CatchingJudge
+from point_projector import CameraIntrinsics
 
 from storage import get_object_signed_url
 
@@ -18,7 +19,15 @@ def process_catching_drill_video():
 
 	obj_signed_url = get_object_signed_url(obj_name)
 
-	with CatchingJudge(obj_signed_url, no_output=True) as judge:
+	cam = CameraIntrinsics(
+		focal_len=4.3,
+		sensor_w=4.2,
+		sensor_h=5.6,
+		image_h=1960.0,
+		image_w=1080.0,
+	)
+
+	with CatchingJudge(obj_signed_url, cam, no_output=True) as judge:
 		result = judge.process_and_write_video()
 
 		if result.err is not None:
