@@ -24,8 +24,8 @@ def process_catching_drill_video():
 
 		if result.err is not None:
 			return jsonify(
-				error_code=result.err.get_error_code(),
-				error_message=result.err.get_error_message(),
+				error_code=result.err.get_err_code(),
+				error_message=result.err.get_err_message(),
 			), 400
 
 		return jsonify(

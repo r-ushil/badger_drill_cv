@@ -14,7 +14,12 @@ def main(input_filename):
 
 	with CatchingJudge(input_filename, cam) as judge:
 		result = judge.process_and_write_video()
-		print(result.get_score())
+
+		if result.err is not None:
+			print(result.err.get_err_code())
+			print(result.err.get_err_message())
+		else:
+			print(result.get_score())
 
 if __name__ == "__main__":
 	main(sys.argv[1])

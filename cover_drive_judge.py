@@ -28,9 +28,6 @@ class Metrics(Enum):
 	KNEE_ANGLE = 5
 	KNEE_ELBOW_DISTANCE = 6
 
-
-
-
 def get_advice(metric: Metrics):
 	match metric:
 		case Metrics.HAND_BY_HIP:
