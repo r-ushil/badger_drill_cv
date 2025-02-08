@@ -1,5 +1,10 @@
 # Badger - Computer Vision Microservice
 
+## Other Components
+
+Frontend: https://github.com/r-ushil/badger_frontend.git
+API Server: https://github.com/r-ushil/badger_api_server.git
+
 ### Usage
 
 1. Clone the repo
